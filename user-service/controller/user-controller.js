@@ -1,5 +1,7 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { isValidObjectId } from "mongoose";
+
 import {
   createUser as _createUser,
   deleteUserById as _deleteUserById,
@@ -10,7 +12,9 @@ import {
   findUserByUsernameOrEmail as _findUserByUsernameOrEmail,
   updateUserById as _updateUserById,
   updateUserPrivilegeById as _updateUserPrivilegeById,
+  createAdminCode as _createAdminCode,
 } from "../model/repository.js";
+
 
 export async function createUser(req, res) {
   try {
@@ -165,3 +169,21 @@ export function formatUserResponse(user) {
     createdAt: user.createdAt,
   };
 }
+
+export async function generateAdminCode(req, res) {
+  try {
+    const adminId = req.user.id;
+    const code = crypto.randomBytes(4).toString("hex").toUpperCase(); // 8 char OTP
+
+    await _createAdminCode(code, adminId);
+
+    return res.status(201).json({
+      message: "Admin signup code generated successfully",
+      data: { code },
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Unknown error when generating admin code!" });
+  }
+}
+

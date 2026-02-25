@@ -7,7 +7,9 @@ import {
   getUser,
   updateUser,
   updateUserPrivilege,
+  generateAdminCode,
 } from "../controller/user-controller.js";
+
 import { verifyAccessToken, verifyIsAdmin, verifyIsOwnerOrAdmin } from "../middleware/basic-access-control.js";
 
 const router = express.Router();
@@ -15,6 +17,9 @@ const router = express.Router();
 router.get("/", verifyAccessToken, verifyIsAdmin, getAllUsers);
 
 router.patch("/:id/privilege", verifyAccessToken, verifyIsAdmin, updateUserPrivilege);
+
+router.post("/admin-code", verifyAccessToken, verifyIsAdmin, generateAdminCode);
+
 
 router.post("/", createUser);
 
