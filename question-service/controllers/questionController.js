@@ -1,4 +1,5 @@
 const Question = require('../models/questionModel');
+const { search } = require('../routes/questionRoutes');
 
 // @desc    Get all questions
 // @route   GET /api/questions
@@ -77,6 +78,44 @@ const getQuestionsByDifficulty = async (req, res) => {
     }
 }
 
+// @desc    Fuzzy search questions
+// @route   GET /api/questions/search
+// @access  Public
+const searchQuestions = async (req, res) => {
+    try {
+        const query = req.query.q
+
+        if (!query) {
+            res.status(400).json({ message: "Search query required" })
+            return
+        }
+
+        const questions = await Question.aggregate([
+            {
+                $search: {
+                    index: "question_search",
+                    text: {
+                        query: query,
+                        path: ["title", "question", "tags"],
+                        fuzzy: {
+                            maxEdits: 2, // allows for 2 typos
+                            prefixLength: 1 // requires the first character to match
+                        }
+                    }
+                }
+            },
+            {
+                $limit: 20
+            }
+        ])
+
+        res.status(200).json(questions)
+
+    } catch (err) {
+        res.status(500).json({ message: "Search failed" })
+    }
+}
+
 // @desc    Add a new question
 // @route   POST /api/questions
 // @access  Public
@@ -136,7 +175,7 @@ const updateQuestion = async (req, res) => {
 // @desc    Delete a question
 // @route   DELETE /api/questions/:id
 // @access  Public
-deleteQuestion = async (req, res) => {
+const deleteQuestion = async (req, res) => {
     try {
         const deletedQuestion = await Question.findById(req.params.id)
         await deletedQuestion.deleteOne()
@@ -153,6 +192,7 @@ module.exports = {
     getQuestionsByTitle,
     getQuestionsByCategory,
     getQuestionsByDifficulty,
+    searchQuestions,
     addQuestion,
     updateQuestion,
     deleteQuestion,
