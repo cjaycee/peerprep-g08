@@ -78,41 +78,87 @@ const getQuestionsByDifficulty = async (req, res) => {
     }
 }
 
-// @desc    Fuzzy search questions
+// @desc    Search questions by title, description, or tags with optional filters for difficulty, category, and tags. 
+// Uses MongoDB Atlas Search for full-text search and relevance scoring.
 // @route   GET /api/questions/search
 // @access  Public
 const searchQuestions = async (req, res) => {
     try {
-        const query = req.query.q
+        const { q, difficulty, category, tags } = req.query
 
-        if (!query) {
-            res.status(400).json({ message: "Search query required" })
-            return
+        const mustFilters = []
+
+        if (difficulty) {
+            mustFilters.push({
+                equals: {
+                    path: "difficulty",
+                    value: difficulty
+                }
+            })
         }
 
-        const questions = await Question.aggregate([
+        if (category) {
+            const categories = category.split(",")
+
+            mustFilters.push({
+                text: {
+                    path: "category",
+                    query: categories
+                }
+            })
+        }
+
+        if (tags) {
+            const tagList = tags.split(",")
+
+            mustFilters.push({
+                text: {
+                    path: "tags",
+                    query: tagList
+                }
+            })
+        }
+
+        const pipeline = [
             {
                 $search: {
                     index: "question_search",
-                    text: {
-                        query: query,
-                        path: ["title", "question", "tags"],
-                        fuzzy: {
-                            maxEdits: 2, // allows for 2 typos
-                            prefixLength: 1 // requires the first character to match
-                        }
+                    compound: {
+                        must: q
+                            ? [{
+                                text: {
+                                    query: q,
+                                    path: ["title", "question", "tags"],
+                                    fuzzy: {
+                                        maxEdits: 2,
+                                        prefixLength: 1
+                                    }
+                                }
+                            }]
+                            : [],
+                        filter: mustFilters
                     }
                 }
             },
             {
+                $addFields: {
+                    score: { $meta: "searchScore" }
+                }
+            },
+            {
+                $sort: { score: -1 }
+            },
+            {
                 $limit: 20
             }
-        ])
+        ]
+
+        const questions = await Question.aggregate(pipeline)
 
         res.status(200).json(questions)
 
     } catch (err) {
-        res.status(500).json({ message: "Search failed" })
+        res.status(500).json({ message: "Search failed", error: err.message })
     }
 }
 
