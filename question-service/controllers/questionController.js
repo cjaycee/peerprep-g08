@@ -26,6 +26,24 @@ const getQuestionById = async (req, res) => {
     }
 }
 
+// @desc    Get questions by category
+// @route   GET /api/questions/category/:category
+// @access  Public
+const getQuestionsByCategory = async (req, res) => {
+    try {
+        const questions = await Question.find({ category: req.params.category })
+
+        if (!questions || questions.length === 0) {
+            res.status(404).json({ message: "No questions found for this category" })
+            return
+        }
+
+        res.status(200).json(questions)
+    } catch (err) {
+        res.status(400).json({ message: "Invalid category" })
+    }
+}
+
 // @desc    Add a new question
 // @route   POST /api/questions
 // @access  Public
@@ -99,6 +117,7 @@ deleteQuestion = async (req, res) => {
 module.exports = {
     getAllQuestions,
     getQuestionById,
+    getQuestionsByCategory,
     addQuestion,
     updateQuestion,
     deleteQuestion,
