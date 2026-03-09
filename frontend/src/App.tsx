@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { JSX } from "react";
+import type { JSX } from "react";
 
 import Login from "./features/user/pages/Login.tsx";
 import Register from "./features/user/pages/Register.tsx";
