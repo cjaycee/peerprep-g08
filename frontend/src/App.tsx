@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import Login from "./features/user/pages/Login.tsx";
 import Register from "./features/user/pages/Register.tsx";
 import Profile from "./features/user/pages/Profile.tsx";
+import UserManagement from "./features/user/pages/UserManagement.tsx";
+import Upgrade from "./features/user/pages/Upgrade.tsx";
 
 function Home() {
     const navigate = useNavigate()
@@ -51,6 +53,24 @@ export default function App() {
                 <Route
                     path="/profile"
                     element={<Profile />}
+                />
+
+                <Route
+                    path="/admin/users"
+                    element={
+                        <ProtectedRoute>
+                            <UserManagement />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/upgrade"
+                    element={
+                        <ProtectedRoute>
+                            <Upgrade />
+                        </ProtectedRoute>
+                    }
                 />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
