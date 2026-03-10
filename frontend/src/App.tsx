@@ -55,7 +55,7 @@ export default function App() {
                 />
 
                 <Route
-                    path="/admin/users"
+                    path="/admin/UserManagement"
                     element={
                         <ProtectedRoute>
                             <UserManagement />
