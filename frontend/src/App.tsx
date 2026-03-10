@@ -1,7 +1,8 @@
 import Login from "./features/user/pages/Login.tsx";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { JSX } from "react";
+import { type JSX } from "react";
 import Register from "./features/user/pages/Register.tsx";
+import QuestionPage from "./features/questions/pages/QuestionPage.tsx";
 
 function Home() {
     return <h1>Welcome to PeerPrep 🎉</h1>;
@@ -22,9 +23,13 @@ export default function App() {
         <BrowserRouter>
             <Routes>
                 <Route path="/login" element={<Login />} />
-
                 <Route path="/register" element={<Register />} />
-
+                <Route
+                    path="/questions"
+                    element={
+                            <QuestionPage />
+                    }
+                />
                 <Route
                     path="/"
                     element={
