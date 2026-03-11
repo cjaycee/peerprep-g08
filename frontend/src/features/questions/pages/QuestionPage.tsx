@@ -1,4 +1,3 @@
-// src/features/questions/pages/QuestionPage.tsx
 import React, { useState, useEffect } from 'react';
 import { type Question } from '../types/question.types';
 import { getAllQuestions, createQuestion, deleteQuestion, updateQuestion } from '../services/questionService';
@@ -14,6 +13,7 @@ export default function QuestionPage() {
   const initialFormState: Question = { title: '', question: '', answer: '', difficulty: 'easy', category: '' };
   const [formData, setFormData] = useState<Question>(initialFormState);
 
+  // All the API calls are made here and passed down to components
   const fetchQuestions = async () => {
     try {
       const data = await getAllQuestions();
