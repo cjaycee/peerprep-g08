@@ -1,3 +1,14 @@
+html {
+  font-size : 26px;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f9fafb;
+  color: #111827;
+}
+
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
@@ -42,6 +53,7 @@
 
 .form-group {
   margin-bottom: 20px;
+  font-size: 30px;
   display: flex;
   flex-direction: column;
 }
@@ -55,4 +67,16 @@
   padding: 10px;
   border: 1px solid #d1d5db;
   border-radius: 4px;
+  font-size: 24px;
+}
+
+button {
+  padding: 12px 20px;
+  background-color: grey;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 24px;
+  margin-right: 10px;
 }

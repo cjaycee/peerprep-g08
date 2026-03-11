@@ -6,7 +6,6 @@ import './QuestionPage.css';
 
 export default function QuestionPage() {
 
-// State management, editingID tracks whether form is adding or editing.
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<string | null>(null); 
