@@ -1,16 +1,16 @@
 import { useState } from "react";
-import "./Register.css"
+import "./Register.css";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function Register() {
-    const [username, setUsername] = useState("")
+    const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("")
-    const [code, setCode] = useState("")
-    const navigate = useNavigate()
+    const [password, setPassword] = useState("");
+    const [code, setCode] = useState("");
+    const navigate = useNavigate();
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
         try {
             const response = await fetch(`${import.meta.env.VITE_USER_API_URL}/users`, {
@@ -26,24 +26,23 @@ export default function Register() {
                 }),
             });
 
-            const data = await response.json();
+      console.log(response);
 
-            if (!response.ok) {
-                throw new Error(data.message || "Registration failed");
-            }
+      const data = await response.json();
 
             localStorage.setItem("token", data.data.accessToken);
 
-            console.log("Registration successful:", data);
+      localStorage.setItem("token", data.data.accessToken);
 
-            // Navigate to home route without page reload
-            navigate("/");
+      console.log("Registration successful:", data);
 
-        } catch (error: any) {
-            console.error("Error:", error);
-            alert(error.message || "Something went wrong");
-        }
-    };
+      // Navigate to home route without page reload
+      navigate("/");
+    } catch (error: any) {
+      console.error("Error:", error);
+      alert(error.message || "Something went wrong");
+    }
+  };
 
 
     return (
