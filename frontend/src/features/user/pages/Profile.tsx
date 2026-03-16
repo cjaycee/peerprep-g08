@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OtpModal from "../components/OtpModal";
+import PageLayout from "../../../shared/components/PageLayout";
+import { Button, Card, CardBody, Chip } from "@heroui/react";
 
 type User = {
   id: number;
@@ -83,51 +85,35 @@ export default function Profile() {
     }
   };
 
-  if (!user) {
-    return <p>Loading profile...</p>;
-  }
+  if (!user) return <p className="p-8 text-gray-500">Loading profile...</p>;
 
   return (
-    <div className="container">
-      <div className="box">
+    <PageLayout>
+      <div className="flex justify-center mt-10">
+        <Card className="w-full max-w-md" shadow="md">
+          <CardBody className="px-8 py-8 flex flex-col gap-4">
+            <h2 className="text-2xl font-bold">{user.username}</h2>
+            <p className="text-gray-500">{user.email}</p>
+            <Chip color={user.isAdmin ? "success" : "default"} variant="flat">
+              {user.isAdmin ? "Admin" : "User"}
+            </Chip>
 
-        <h2>{user.username}</h2>
-
-        <p>{user.email}</p>
-
-        <p>{user.isAdmin ? "admin" : "user"}</p>
-
-        <div className="button-container">
-
-          {
-            user.isAdmin ? (
-              <button
-                className="button"
-                onClick={() => navigate("/admin/UserManagement")}
-              >
-                View All Users
-              </button>
-            ) : (
-              <button
-                className="button"
-                onClick={() => setIsModalOpen(true)}
-              >
-                Upgrade Permissions
-              </button>
-            )
-          }
-
-          <button
-            className="button"
-            onClick={() => {
-              localStorage.removeItem("token");
-              navigate("/login");
-            }}
-          >
-            Logout
-          </button>
-
-        </div>
+            <div className="flex flex-col gap-3 mt-4">
+              {user.isAdmin ? (
+                <Button color="primary" variant="flat" onPress={() => navigate("/admin/UserManagement")}>
+                  View All Users
+                </Button>
+              ) : (
+                <Button color="warning" variant="flat" onPress={() => setIsModalOpen(true)}>
+                  Upgrade Permissions
+                </Button>
+              )}
+              <Button color="danger" variant="flat" onPress={() => { localStorage.removeItem("token"); navigate("/login"); }}>
+                Logout
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
       </div>
 
       <OtpModal
@@ -136,6 +122,6 @@ export default function Profile() {
         onSubmit={handleUpgradeSubmit}
         isLoading={isUpgrading}
       />
-    </div>
+    </PageLayout>
   );
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { type Question } from '../types/question.types';
 import { getAllQuestions, createQuestion, deleteQuestion, updateQuestion } from '../services/questionService';
-import Dashboard from '../components/Dashboard';
+import PageLayout from '../../../shared/components/PageLayout';
+import './QuestionPage.css';
 import QuestionTable from '../components/QuestionTable';
 import QuestionForm from '../components/QuestionForm';
 
@@ -42,11 +43,11 @@ export default function QuestionPage() {
     try {
       if (editingId) await updateQuestion(editingId, formData);
       else await createQuestion(formData);
-      
+
       setFormData(initialFormState);
       setEditingId(null);
       setIsAdding(false);
-      fetchQuestions(); 
+      fetchQuestions();
     } catch (error) {
       console.error("Error saving question:", error);
     }
@@ -68,25 +69,25 @@ export default function QuestionPage() {
     setIsAdding(false);
   };
 
-// Seperate into components : Question Form and Question Table
+  // Seperate into components : Question Form and Question Table
   return (
-    <Dashboard>
+    <PageLayout>
       {isAdding ? (
-        <QuestionForm 
-          formData={formData} 
-          editingId={editingId} 
-          onChange={handleInputChange} 
-          onSubmit={handleSubmit} 
-          onCancel={handleCancel} 
+        <QuestionForm
+          formData={formData}
+          editingId={editingId}
+          onChange={handleInputChange}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
         />
       ) : (
-        <QuestionTable 
-          questions={questions} 
-          onAddNew={() => setIsAdding(true)} 
-          onEdit={handleEditClick} 
-          onDelete={handleDelete} 
+        <QuestionTable
+          questions={questions}
+          onAddNew={() => setIsAdding(true)}
+          onEdit={handleEditClick}
+          onDelete={handleDelete}
         />
       )}
-    </Dashboard>
+    </PageLayout>
   );
 }
