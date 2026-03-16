@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OtpModal from "../components/OtpModal";
+import PageLayout from "../../../shared/components/PageLayout";
 
 type User = {
   id: number;
@@ -88,54 +89,56 @@ export default function Profile() {
   }
 
   return (
-    <div className="container">
-      <div className="box">
+    <PageLayout>
+      <div className="container mx-auto">
+        <div className="box">
 
-        <h2>{user.username}</h2>
+          <h2 className="text-2xl font-bold mb-2">{user.username}</h2>
 
-        <p>{user.email}</p>
+          <p className="mb-2">{user.email}</p>
 
-        <p>{user.isAdmin ? "admin" : "user"}</p>
+          <p className="mb-6 font-semibold">{user.isAdmin ? "admin" : "user"}</p>
 
-        <div className="button-container">
+          <div className="button-container flex flex-col gap-4 items-center">
 
-          {
-            user.isAdmin ? (
-              <button
-                className="button"
-                onClick={() => navigate("/admin/UserManagement")}
-              >
-                View All Users
-              </button>
-            ) : (
-              <button
-                className="button"
-                onClick={() => setIsModalOpen(true)}
-              >
-                Upgrade Permissions
-              </button>
-            )
-          }
+            {
+              user.isAdmin ? (
+                <button
+                  className="button"
+                  onClick={() => navigate("/admin/UserManagement")}
+                >
+                  View All Users
+                </button>
+              ) : (
+                <button
+                  className="button"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  Upgrade Permissions
+                </button>
+              )
+            }
 
-          <button
-            className="button"
-            onClick={() => {
-              localStorage.removeItem("token");
-              navigate("/login");
-            }}
-          >
-            Logout
-          </button>
+            <button
+              className="button bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                localStorage.removeItem("token");
+                navigate("/login");
+              }}
+            >
+              Logout
+            </button>
 
+          </div>
         </div>
-      </div>
 
-      <OtpModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleUpgradeSubmit}
-        isLoading={isUpgrading}
-      />
-    </div>
+        <OtpModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleUpgradeSubmit}
+          isLoading={isUpgrading}
+        />
+      </div>
+    </PageLayout>
   );
 }

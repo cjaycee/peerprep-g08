@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import PageLayout from "../../../shared/components/PageLayout";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -22,36 +23,38 @@ export default function Home() {
   };
 
   return (
-    <>
-      <h1>Welcome to PeerPrep 🎉</h1>
+    <PageLayout>
+      <div className="flex flex-col items-center justify-center space-y-6 mt-10">
+        <h1 className="text-3xl font-bold">Welcome to PeerPrep!</h1>
 
-      <button className="button" onClick={handleProfile}>
-        Your Profile
-      </button>
+        <button className="button" onClick={handleProfile}>
+          Your Profile
+        </button>
 
-      <button
-        className="button"
-        onClick={handleAdminOTP}
-        style={{ backgroundColor: "#edde10" }}
-      >
-        Generate Admin OTP (use only if admin)
-      </button>
+        <button
+          className="button"
+          onClick={handleAdminOTP}
+          style={{ backgroundColor: "#edde10" }}
+        >
+          Generate Admin OTP (use only if admin)
+        </button>
 
-      <button
-        className="button"
-        onClick={handleAdminUpgrade}
-        style={{ backgroundColor: "#2a10ed" }}
-      >
-        Enter admin upgrade OTP (use if user)
-      </button>
+        <button
+          className="button"
+          onClick={handleAdminUpgrade}
+          style={{ backgroundColor: "#2a10ed" }}
+        >
+          Enter admin upgrade OTP (use if user)
+        </button>
 
-      <button
-        className="button"
-        onClick={handleLogout}
-        style={{ backgroundColor: "#ec0a0a" }}
-      >
-        Log Out
-      </button>
-    </>
+        <button
+          className="button"
+          onClick={handleLogout}
+          style={{ backgroundColor: "#ec0a0a" }}
+        >
+          Log Out
+        </button>
+      </div>
+    </PageLayout>
   );
 }

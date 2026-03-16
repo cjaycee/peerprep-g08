@@ -1,12 +1,10 @@
 import { type ReactNode } from 'react';
-import AppNavbar from '../../../shared/components/Navbar';
-import '../pages/QuestionPage.css'; 
-
-interface DashboardProps {
+import AppNavbar from './Navbar';
+interface PageLayoutProps {
   children: ReactNode;
 }
 
-export default function Dashboard({ children }: DashboardProps) {
+export default function PageLayout({ children }: PageLayoutProps) {
   return (
     <div className="flex flex-col h-screen bg-gray-50 w-full overflow-hidden">
       <AppNavbar />

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { type Question } from '../types/question.types';
 import { getAllQuestions, createQuestion, deleteQuestion, updateQuestion } from '../services/questionService';
-import Dashboard from '../components/Dashboard';
+import PageLayout from '../../../shared/components/PageLayout';
+import './QuestionPage.css';
 import QuestionTable from '../components/QuestionTable';
 import QuestionForm from '../components/QuestionForm';
 
@@ -70,7 +71,7 @@ export default function QuestionPage() {
 
 // Seperate into components : Question Form and Question Table
   return (
-    <Dashboard>
+    <PageLayout>
       {isAdding ? (
         <QuestionForm 
           formData={formData} 
@@ -87,6 +88,6 @@ export default function QuestionPage() {
           onDelete={handleDelete} 
         />
       )}
-    </Dashboard>
+    </PageLayout>
   );
 }
