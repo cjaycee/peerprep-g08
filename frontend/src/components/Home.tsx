@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@heroui/react";
 import PageLayout from "../shared/components/PageLayout";
+import { useState } from "react";
+import type { User } from "../features/user/types/User";
 
 export default function Home() {
   const navigate = useNavigate();
