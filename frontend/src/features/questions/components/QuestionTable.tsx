@@ -1,3 +1,4 @@
+import { base, text } from 'framer-motion/client';
 import { type Question } from '../types/question.types';
 import {
   Table, TableHeader, TableColumn, TableBody, TableRow, TableCell,
@@ -32,7 +33,11 @@ const renderCell = (question: Question, columnKey: string, onEdit: (question: Qu
     case "title":
       return question.title;
     case "category":
-      return question.category;
+      return (
+        <Chip className="capitalize">
+          {question.category}
+        </Chip>
+      );
     case "difficulty":
       return (
         <Chip color={difficultyColor[question.difficulty] ?? "default"} variant="flat" size="sm" className="capitalize">
@@ -41,11 +46,21 @@ const renderCell = (question: Question, columnKey: string, onEdit: (question: Qu
       );
     case "actions":
       return (
-        <div className="flex gap-2">
-          <Button size="sm" variant="flat" color="primary" onPress={() => onEdit(question)}>
+        <div className="flex gap-3 justify-center items-center">
+          <Button 
+            size="sm" 
+            variant="flat" 
+            color="primary" 
+            className = "font-semibold hover:scale-105 transition-transform duration-200"
+            onPress={() => onEdit(question)}>
             Edit  
           </Button>
-          <Button size="sm" variant="flat" color="danger" onPress={() => question._id && onDelete(question._id)}>
+          <Button 
+            size="sm" 
+            variant="flat"
+            color="danger" 
+            className = "font-semibold hover:scale-105 transition-transform duration-200"
+            onPress={() => question._id && onDelete(question._id)}>
             Delete
           </Button>
         </div>
@@ -62,16 +77,17 @@ export default function QuestionTable({ questions, isAdmin, onAddNew, onEdit, on
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-semibold text-gray-800">Manage Questions</h2>
-        {isAdmin && (
-          <Button color="warning" className="text-white" onPress={onAddNew}>
-            + Add New
-          </Button>
-        )}
-      </div>
-
-      <Table aria-label="Questions table" className="mt-2">
+      <Table 
+        aria-label="Questions table" 
+        className="mt-2"
+        classNames={{
+          base: "max-w-full",
+          table: "min-w-full",
+          tr: "hover:bg-gray-50 transition-colors duration-200 cursor-pointer text-base",
+          td: "py-5 px-4",
+          th: "text-sm font-semibold text-gray-600 bg-gray-100/50 uppercase tracking-wider py-4"
+        }}
+      >
         <TableHeader columns={headerColumns}>
           {(column) => (
             <TableColumn key={column.uid}>

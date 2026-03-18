@@ -106,8 +106,7 @@ export default function QuestionPage() {
               <Button 
                 color="warning" 
                 variant="bordered"
-
-                className="text-black font-semibold"
+                className="text-black font-semibold hover: transition-all duration-200 hover:scale-105"
                 onPress={() => setIsAdding(true)}
               >
                 + Add New Question
