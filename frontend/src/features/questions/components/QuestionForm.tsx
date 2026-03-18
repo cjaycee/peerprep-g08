@@ -2,6 +2,7 @@ import React from 'react';
 import { type Question } from '../types/question.types.ts';
 import { Input, Button, Select, SelectItem, Textarea } from "@heroui/react";
 
+
 interface QuestionFormProps {
   formData: Question;
   editingId: string | null;
@@ -82,7 +83,7 @@ export default function QuestionForm({ formData, editingId, onChange, onSubmit, 
           <Button type="button" variant="bordered" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" color="warning" className="text-white">
+          <Button type="submit" color="warning" className="text-black">
             {editingId ? "Save Changes" : "Submit"}
           </Button>
         </div>
