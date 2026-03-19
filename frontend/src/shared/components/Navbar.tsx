@@ -1,16 +1,31 @@
-import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Link, Button } from "@heroui/react";
+import {
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  Link,
+} from "@heroui/react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import PeerprepIcon from "../../assets/images/peerprep-logo.png";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLogout } from "../../features/user/hooks/useLogout";
 
 export const PeerprepLogo = () => {
   return (
-    <img src={PeerprepIcon} alt="Peerprep" className="h-50 w-50" />
+    <div className="h-16 w-32 overflow-hidden rounded-md">
+      <img
+        src={PeerprepIcon}
+        alt="Peerprep"
+        className="h-full w-full object-cover object-center"
+      />
+    </div>
   );
 };
 
 export default function AppNavbar() {
   const location = useLocation();
-  const navigate = useNavigate();
+
+  const logout = useLogout();
 
   const navItems = [
     { name: "Dashboard", path: "/" },
@@ -21,6 +36,7 @@ export default function AppNavbar() {
 
   return (
     <Navbar
+      maxWidth="xl"
       classNames={{
         item: [
           "flex",
@@ -38,15 +54,18 @@ export default function AppNavbar() {
         ],
       }}
     >
-      <NavbarBrand>
-        <PeerprepLogo />
-      </NavbarBrand>
+      <NavbarContent justify="start">
+        <NavbarBrand>
+          <PeerprepLogo />
+        </NavbarBrand>
+      </NavbarContent>
+
       <NavbarContent className="hidden sm:flex gap-4" justify="center">
         {navItems.map((item) => {
           const isActive =
             location.pathname === item.path ||
             (item.path !== "/" && location.pathname.startsWith(item.path));
-            
+
           return (
             <NavbarItem key={item.name} isActive={isActive}>
               <Link
@@ -61,12 +80,19 @@ export default function AppNavbar() {
           );
         })}
       </NavbarContent>
-      <NavbarContent justify="end">
+
+      <NavbarContent justify="end" className="pr-6">
         <NavbarItem className="hidden lg:flex">
-          <Link href="#" onClick={() => {
-                localStorage.removeItem("token");
-                navigate("/login"); 
-              }}>Logout</Link>
+          <Link
+            href="#"
+            color="danger"
+            onClick={(e) => {
+              e.preventDefault();
+              logout();
+            }}
+          >
+            Log Out
+          </Link>
         </NavbarItem>
       </NavbarContent>
     </Navbar>

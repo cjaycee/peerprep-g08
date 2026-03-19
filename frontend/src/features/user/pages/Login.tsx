@@ -1,29 +1,23 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Input, Button, Card, CardBody, CardHeader } from "@heroui/react";
+import { Input, Button, Card, CardBody, CardHeader, Form } from "@heroui/react";
+import { loginUser } from "../api/auth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrorMessage("");
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_USER_API_URL}/auth/login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        },
-      );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Login failed");
+      const data = await loginUser(email, password);
       localStorage.setItem("token", data.data.accessToken);
       navigate("/");
     } catch (error: any) {
-      alert(error.message || "Something went wrong");
+      setErrorMessage(error.message || "Something went wrong");
     }
   };
 
@@ -40,9 +34,11 @@ export default function Login() {
           <h3 className="text-xl font-semibold">Login to PeerPrep</h3>
         </CardHeader>
         <CardBody className="px-8 py-6">
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          <Form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <Input
+              errorMessage="Please enter a valid email"
               label="Email"
+              name="email"
               type="email"
               value={email}
               onValueChange={setEmail}
@@ -57,16 +53,28 @@ export default function Login() {
               placeholder="Enter Password"
               variant="bordered"
             />
-            <Button type="submit" color="warning" className="w-full mt-2 text-white font-semibold">
+
+            {errorMessage && (
+              <div className="text-center text-sm text-red-500">
+                {errorMessage}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              color="warning"
+              className="w-full mt-2 text-white font-semibold"
+            >
               Log In
             </Button>
+
             <p className="text-center text-sm text-gray-500">
               Don't have an account?{" "}
               <Link to="/register" className="text-orange-500 hover:underline">
                 Register
               </Link>
             </p>
-          </form>
+          </Form>
         </CardBody>
       </Card>
     </div>

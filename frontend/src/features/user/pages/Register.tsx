@@ -1,27 +1,24 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Input, Button, Card, CardBody, CardHeader } from "@heroui/react";
+import { Input, Button, Card, CardBody, CardHeader, Form } from "@heroui/react";
+import { registerUser } from "../api/auth";
 
 export default function Register() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${import.meta.env.VITE_USER_API_URL}/users`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password, code }),
-      });
-      const data = await response.json();
+      const data = await registerUser({ username, email, password, code });
       localStorage.setItem("token", data.data.accessToken);
       navigate("/");
     } catch (error: any) {
-      alert(error.message || "Something went wrong");
+      setErrorMessage(error.message || "Something went wrong");
     }
   };
 
@@ -38,7 +35,7 @@ export default function Register() {
           <h3 className="text-xl font-semibold">Create PeerPrep Account</h3>
         </CardHeader>
         <CardBody className="px-8 py-6">
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          <Form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <Input
               label="Username"
               type="text"
@@ -71,7 +68,18 @@ export default function Register() {
               placeholder="Enter OTP"
               variant="bordered"
             />
-            <Button type="submit" color="warning" className="w-full mt-2 text-white font-semibold">
+
+            {errorMessage && (
+              <div className="text-center text-sm text-red-500">
+                {errorMessage}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              color="warning"
+              className="w-full mt-2 text-white font-semibold"
+            >
               Register
             </Button>
             <p className="text-center text-sm text-gray-500">
@@ -80,7 +88,7 @@ export default function Register() {
                 Log in
               </Link>
             </p>
-          </form>
+          </Form>
         </CardBody>
       </Card>
     </div>
