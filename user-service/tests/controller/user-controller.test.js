@@ -1,5 +1,3 @@
-import bcrypt from "bcrypt";
-import { isValidObjectId } from "mongoose";
 import {
   createUser,
   getUser,
