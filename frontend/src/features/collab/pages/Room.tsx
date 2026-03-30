@@ -32,7 +32,7 @@ export default function Room() {
   const navigate = useNavigate();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  const [language, setLanguage] = useState("typescript");
+  const [language, setLanguage] = useState("javascript");
   const [roomReady, setRoomReady] = useState(false);
   /**
    * questionId is null until the matchservice populates it.
