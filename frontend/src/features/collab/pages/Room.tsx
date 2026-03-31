@@ -13,6 +13,7 @@ import {
 } from "@heroui/react";
 
 import { joinRoom, endRoom } from "../services/api";
+import { getCurrentUser } from "../../user/api/auth";
 import { RoomLayoutProvider } from "../context/RoomLayoutContext";
 import SplitPaneLayout, { PanelToggleButtons } from "../components/SplitPane";
 import QuestionPanel from "../components/QuestionPanel";
@@ -51,6 +52,27 @@ export default function Room() {
   };
   
   const [currentUsername] = useState<string>(getUsernameFromStorage());
+
+  // ── Fetch fresh user data from /auth/me on mount ────────────────────────────
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await getCurrentUser();
+        // Store fresh user data in localStorage
+        localStorage.setItem("userData", JSON.stringify({
+          id: response.data.id,
+          username: response.data.username,
+          email: response.data.email,
+          isAdmin: response.data.isAdmin,
+        }));
+      } catch (error) {
+        console.warn("Failed to fetch current user data:", error);
+        // Continue anyway - we have data from login, this is just a refresh
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
 
   // ── Join room & hydrate metadata ────────────────────────────────────────────
   useEffect(() => {
