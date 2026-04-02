@@ -90,11 +90,6 @@ export default function CollabEditor({
       awarenessTimeout = setTimeout(() => {
         const cursors: monacoeditor.editor.IModelDeltaDecoration[] = [];
 
-        console.log(
-          "awareness changed, states:",
-          Array.from(wsProvider.awareness.getStates().entries()),
-        );
-
         wsProvider.awareness.getStates().forEach((state, clientId) => {
           if (clientId === wsProvider.awareness.clientID) return;
           if (!state.selection || !state.user) return;

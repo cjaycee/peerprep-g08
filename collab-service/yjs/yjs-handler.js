@@ -13,9 +13,7 @@ const wss = new WebSocketServer({ noServer: true });
 export function setupYjsHandler(server) {
   server.on("upgrade", (req, socket, head) => {
     if (req.url.startsWith("/yjs/")) {
-      console.log("upgrade request:", req.url);
       wss.handleUpgrade(req, socket, head, (ws) => {
-        console.log("yjs upgrade complete, emitting connection");
         wss.emit("connection", ws, req);
       });
     }
@@ -23,8 +21,6 @@ export function setupYjsHandler(server) {
 
   wss.on("connection", (ws, req) => {
     const roomId = req.url.replace("/yjs/", "");
-
-    console.log("Yjs client connected, roomId:", req.url);
 
     if (!rooms.has(roomId)) {
       rooms.set(roomId, { ydoc: new Y.Doc(), clients: new Set() });
@@ -71,7 +67,6 @@ export function setupYjsHandler(server) {
     });
 
     ws.on("close", (code, reason) => {
-      console.log("Yjs client closed:", code, reason.toString());
       room.clients.delete(ws);
     });
   });

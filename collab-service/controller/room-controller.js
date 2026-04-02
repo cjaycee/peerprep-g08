@@ -22,9 +22,6 @@ export function createRoomController(io) {
    */
   const joinRoom = (req, res) => {
     const { roomId, user } = req.body;
-
-    console.log("joinroom body:", req.body);
-
     const { error, data: room } = RoomModel.addUserToRoom(roomId, user);
     if (!error) {
       return res.json({
