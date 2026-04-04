@@ -1,4 +1,4 @@
-// Seperated queue logic into 3 levels based on relaxation level. 
+// Separated queue logic into 3 levels based on relaxation level. 
 // level 0:  queue:{lang}:{topic}:{difficulty}   full criteria
 // level 1:  queue:{lang}:{topic}                difficulty relaxed (at 30 s)
 // level 2:  queue:{lang}                        topic relaxed     (at 60 s)

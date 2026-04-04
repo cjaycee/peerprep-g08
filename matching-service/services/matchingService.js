@@ -86,7 +86,7 @@ async function tryMatching(io, socket, queueKey) {
     if (s1 !== 'WAITING' || s2 !== 'WAITING') {
       await releaseLock(firstId, token1);
       await releaseLock(secondId, token2);
-      // Push back to queue if waitinf. 
+      // Push back to queue if waiting. 
       if (s2 === 'WAITING') await redisClient.lPush(queueKey, raw);
       break;
     }
@@ -146,7 +146,7 @@ async function finalizeMatch(io, socket, candidate, queueKey) {
 
   console.log(`Match finalised: ${state?.userId} and ${candidate.userId} on ${queueKey}`);
 
-  // Delete user and socker states after match. 
+  // Delete user and socket states after match. 
   await redisClient.del(`user_state:${state?.userId}`);
   await redisClient.del(`user_state:${candidate.userId}`);
 
