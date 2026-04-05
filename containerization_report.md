@@ -57,27 +57,21 @@ The services communicate seamlessly using **Docker's Internal DNS** and a dedica
 
 ```mermaid
 graph TD
-    classDef frontend fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff;
-    classDef gateway fill:#10b981,stroke:#047857,stroke-width:2px,color:#fff;
-    classDef backend fill:#f59e0b,stroke:#b45309,stroke-width:2px,color:#fff;
-    classDef database fill:#8b5cf6,stroke:#4c1d95,stroke-width:2px,color:#fff;
-    classDef external fill:#6b7280,stroke:#374151,stroke-width:2px,color:#fff;
-
-    User([User Browser]):::external -->|HTTP GET :5173\nServes Static Files| Frontend[peerprep-frontend]:::frontend
-    User -->|API Calls :3000\nREST / WebSockets| Gateway[peerprep-api-gateway]:::gateway
+    User([User Browser]) -->|Port 5173 - HTTP| Frontend[peerprep-frontend]
+    User -->|Port 3000 - REST & WebSocket API| Gateway[peerprep-api-gateway]
     
-    subgraph Docker Internal Network [Docker Bridge Network: peerprep-network]
-        Gateway -->|HTTP Proxy :3001| UserSvc[peerprep-user-service]:::backend
-        Gateway -->|HTTP Proxy :8080| QuestionSvc[peerprep-question-service]:::backend
-        Gateway -->|HTTP / WS Proxy :3219| CollabSvc[peerprep-collab-service]:::backend
-        Gateway -->|HTTP / WS Proxy :3002| MatchingSvc[peerprep-matching-service]:::backend
+    subgraph "Docker Internal Network (peerprep-network)"
+        Gateway -->|Port 3001 - REST Proxy| UserSvc[user-service]
+        Gateway -->|Port 8080 - REST Proxy| QuestionSvc[question-service]
+        Gateway -->|Port 3219 - WebSocket & REST| CollabSvc[collab-service]
+        Gateway -->|Port 3002 - WebSocket & REST| MatchingSvc[matching-service]
         
-        UserSvc -->|Mongoose Connection :27017| MongoDB[(peerprep-mongodb)]:::database
-        QuestionSvc -->|Mongoose Connection :27017| MongoDB
-        CollabSvc -->|Mongoose Connection :27017| MongoDB
+        UserSvc -->|Port 27017 - MongoDB URI| MongoDB[(mongodb)]
+        QuestionSvc -->|Port 27017 - MongoDB URI| MongoDB
+        CollabSvc -->|Port 27017 - MongoDB URI| MongoDB
         
-        CollabSvc -->|Redis Pub/Sub :6379| Redis[(peerprep-redis)]:::database
-        MatchingSvc -->|Redis Queues :6379| Redis
+        CollabSvc -->|Port 6379 - Redis URI| Redis[(redis)]
+        MatchingSvc -->|Port 6379 - Redis URI| Redis
     end
 ```
 
