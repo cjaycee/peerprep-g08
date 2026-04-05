@@ -40,9 +40,11 @@ A standardized strategy was applied to all microservices to ensure small, secure
 2.  **Multi-Stage Builds**:
     *   **Stage 1 (Builder)**: Installs all dependencies (including `devDependencies`) and compiles source code where necessary (e.g., `frontend` build).
     *   **Stage 2 (Runtime)**: Copies only the necessary application context and production `node_modules`. This keeps the final image clean of build-time artifacts and source control junk.
-3.  **Context Optimization**:
-    *   **`.dockerignore`**: Prevents unnecessary files like `.git`, `node_modules` (local), and `.env` from being sent to the Docker daemon during the build process, further speeding up build times.
-4.  **Health Checks**:
+3.  **Cross-Platform Resolution**:
+    *   Since local development on macOS creates a `package-lock.json` with OS-specific binaries (like `@rollup/rollup-linux-arm64-musl`), the `frontend/Dockerfile` specifically avoids `npm ci` and runs `RUN rm -f package-lock.json && npm install`. This recreates the lockfile using the necessary Linux binaries directly within the container context.
+4.  **Context Optimization**:
+    *   **`.dockerignore`**: Prevents unnecessary files like `.git` and `node_modules` (local) from being sent to the Docker daemon. Notably, `frontend/.env` is deliberately *omitted* from `.dockerignore` so that Vite can inject environment variables natively during `npm run build`.
+5.  **Health Checks**:
     *   Custom `healthcheck` commands were added to the `mongodb` and `redis` services. The microservices are configured to wait until these health checks pass (`condition: service_healthy`) before attempting to connect, preventing "Connection Refused" errors on startup.
 
 ---
@@ -55,26 +57,34 @@ The services communicate seamlessly using **Docker's Internal DNS** and a dedica
 
 ```mermaid
 graph TD
-    User([User Browser]) -->|Port 5173| Frontend[peerprep-frontend]
-    Frontend -->|API Calls Port 3000| Gateway[peerprep-api-gateway]
+    classDef frontend fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff;
+    classDef gateway fill:#10b981,stroke:#047857,stroke-width:2px,color:#fff;
+    classDef backend fill:#f59e0b,stroke:#b45309,stroke-width:2px,color:#fff;
+    classDef database fill:#8b5cf6,stroke:#4c1d95,stroke-width:2px,color:#fff;
+    classDef external fill:#6b7280,stroke:#374151,stroke-width:2px,color:#fff;
+
+    User([User Browser]):::external -->|HTTP GET :5173\nServes Static Files| Frontend[peerprep-frontend]:::frontend
+    User -->|API Calls :3000\nREST / WebSockets| Gateway[peerprep-api-gateway]:::gateway
     
-    subgraph "Docker Internal Network (peerprep-network)"
-    Gateway -->|http://user-service:3001| UserSvc[peerprep-user-service]
-    Gateway -->|http://question-service:8080| QuestionSvc[peerprep-question-service]
-    Gateway -->|http://collab-service:3219| CollabSvc[peerprep-collab-service]
-    Gateway -->|http://matching-service:3002| MatchingSvc[peerprep-matching-service]
-    
-    UserSvc -->|mongodb://mongodb:27017| MongoDB[(peerprep-mongodb)]
-    QuestionSvc -->|mongodb://mongodb:27017| MongoDB
-    CollabSvc -->|mongodb://mongodb:27017| MongoDB
-    CollabSvc -->|redis://redis:6379| Redis[(peerprep-redis)]
-    MatchingSvc -->|redis://redis:6379| Redis
+    subgraph Docker Internal Network [Docker Bridge Network: peerprep-network]
+        Gateway -->|HTTP Proxy :3001| UserSvc[peerprep-user-service]:::backend
+        Gateway -->|HTTP Proxy :8080| QuestionSvc[peerprep-question-service]:::backend
+        Gateway -->|HTTP / WS Proxy :3219| CollabSvc[peerprep-collab-service]:::backend
+        Gateway -->|HTTP / WS Proxy :3002| MatchingSvc[peerprep-matching-service]:::backend
+        
+        UserSvc -->|Mongoose Connection :27017| MongoDB[(peerprep-mongodb)]:::database
+        QuestionSvc -->|Mongoose Connection :27017| MongoDB
+        CollabSvc -->|Mongoose Connection :27017| MongoDB
+        
+        CollabSvc -->|Redis Pub/Sub :6379| Redis[(peerprep-redis)]:::database
+        MatchingSvc -->|Redis Queues :6379| Redis
     end
 ```
 
 ### Key Technical Details:
-*   **Internal DNS**: Docker's embedded DNS server allows services to resolve other containers by their service names (e.g., `user-service`, `mongodb`).
-*   **Zero-Intervention Configuration**: All connection strings are managed via **Environment Variables** in the `docker-compose.yml`. For example, the `api-gateway` defines:
+*   **Internal DNS**: Docker's embedded DNS server allows services to resolve other containers by their service names (e.g., `http://user-service:3001`, `redis://redis:6379`).
+*   **Zero-Intervention Configuration**: All connection strings are managed via **Environment Variables** in `.env` files or injected directly via `docker-compose.yml`. For example, the `api-gateway` defines:
     *   `USER_SERVICE_URL=http://user-service:3001`
-    *   `QUESTION_SERVICE_URL=http://question-service:8080`
-*   **Isolation**: Only those ports required by the user (3000 for Gateway, 5173 for Frontend) need to be exposed to the host machine. All inter-service traffic remains private within the Docker network.
+    *   `MATCHING_SERVICE_URL=http://matching-service:3002`
+*   **Frontend Environment Injection Mechanism**: Because Vite generates a static application, frontend environment variables (`VITE_*`) must be injected at *build time*. Therefore, `.env` is specifically **included** in the Frontend container builder stage.
+*   **Isolation**: Only ports `3000` (API Gateway) and `5173` (Frontend Web Host) need to be exposed to the host machine. All microservice REST traffic and database connections remain private within the Docker network.
