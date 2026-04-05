@@ -93,6 +93,16 @@ services:
     networks:
       - peerprep-network
 
+  frontend:
+    build: ./frontend
+    container_name: peerprep-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - peerprep-network
+
 networks:
   peerprep-network:
     driver: bridge

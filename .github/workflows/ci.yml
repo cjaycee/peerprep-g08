@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [api-gateway, user-service, question-service, collab-service]
+        service: [api-gateway, user-service, question-service, collab-service, frontend]
 
     steps:
     - uses: actions/checkout@v4
