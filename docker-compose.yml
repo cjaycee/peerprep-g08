@@ -38,7 +38,8 @@ services:
       - PORT=3001
       - DB_LOCAL_URI=mongodb://mongodb:27017/peerprep-user
       - ENV=LOCAL
-      - JWT_SECRET=your_jwt_secret_here
+    env_file:
+      - ./user-service/.env
     depends_on:
       mongodb:
         condition: service_healthy
