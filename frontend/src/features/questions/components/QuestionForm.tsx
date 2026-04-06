@@ -10,7 +10,7 @@ interface QuestionFormProps {
   onCancel: () => void;
 }
 
-const topics = ["Strings", "Arrays", "Algorithms", "Stacks", "Queues", "Trees", "Graphs", "Dynamic Programming"];
+const topics = ["Strings", "Arrays", "Stacks", "Queues", "Trees", "Graphs"];
 const difficulties = ["easy", "medium", "hard"];
 
 export default function QuestionForm({ formData, editingId, onChange, onSubmit, onCancel }: QuestionFormProps) {
@@ -49,7 +49,7 @@ export default function QuestionForm({ formData, editingId, onChange, onSubmit, 
             isRequired
           >
             {topics.map((t) => (
-              <SelectItem key={t}>
+              <SelectItem key={t.toLowerCase().replace(' ', '-')}>
                 {t}
               </SelectItem>
             ))}

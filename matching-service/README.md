@@ -10,6 +10,9 @@ The matching service listens on port **3002**. It handles real-time matching req
 - Automatically cleans up "ghost sockets" if a user disconnects before finding a match.
 
 ## Set-Up
+0. Run the docker compose file in the main folder
+docker compose up -d redis
+
 1. Install Dependencies
 In the `matching-service` folder:
 npm install
@@ -46,12 +49,23 @@ node test-matching.js
 ## WebSocket API
 The service accepts connections via `ws://localhost:3002` (or through the API Gateway).
 
-- **Event (Emit):** `find-match`
-  - Payload: `{ userId, language, difficulty, category }`
-- **Event (On):** `match-found`
-  - Payload: `{ roomId, partnerId }`
-- **Event (On):** `match-timeout`
-  - Payload: `{ message }`
+- **Client Emits (To Server):**
+  - `find-match`: Start searching for a partner.
+    - Payload: `{ userId: string, languages: string[], topics: string[], difficulty: string }`
+  - `cancel-match`: Stop the search and leave the queue.
+    - No payload.
+
+- **Server Emits (To Client):**
+  - `match-found`: Emitted when a match is successfully paired.
+    - Payload: `{ roomUrl: string, questionId: string, matchedOn: { topic: string, difficulty: string }, partnerUserId: string }`
+  - `criteria-relaxed`: Emitted when the search constraints are loosened after 30s/60s.
+    - Payload: `{ level: number, message: string }`
+  - `match-timeout`: Emitted when no match is found after 120s.
+    - Payload: `{ message: string }`
+  - `match-cancelled`: Emitted as confirmation after `cancel-match`.
+    - Payload: `{ message: string }`
+  - `error`: Emitted for invalid search payloads or other issues.
+    - Payload: `{ message: string }`
 
 ## File Structure
 ```
