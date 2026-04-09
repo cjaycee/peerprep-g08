@@ -210,6 +210,7 @@ export function formatUserResponse(user) {
     username: user.username,
     email: user.email,
     isAdmin: user.isAdmin,
+    isEmailVerified: user.isEmailVerified,
     createdAt: user.createdAt,
   };
 }

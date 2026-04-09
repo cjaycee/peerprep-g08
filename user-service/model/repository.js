@@ -1,5 +1,6 @@
 import UserModel from "./user-model.js";
 import AdminCodeModel from "./admin-code-model.js";
+import OtpModel from "./otp-model.js";
 
 import "dotenv/config";
 import { connect } from "mongoose";
@@ -85,3 +86,39 @@ export async function findAndUseAdminCode(code) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// OTP functions (F1.1.2 – email confirmation)
+// ---------------------------------------------------------------------------
+
+/**
+ * Deletes all existing OTPs for an email then saves a new one.
+ */
+export async function createOtp(email, otp) {
+  await OtpModel.deleteMany({ email });
+  return new OtpModel({ email, otp }).save();
+}
+
+/**
+ * Finds the most recent unexpired OTP for the given email.
+ */
+export async function findLatestOtpByEmail(email) {
+  return OtpModel.findOne({ email }).sort({ createdAt: -1 });
+}
+
+/**
+ * Removes all OTP documents for a given email (called after successful verification).
+ */
+export async function deleteOtpsByEmail(email) {
+  return OtpModel.deleteMany({ email });
+}
+
+/**
+ * Marks the user's email as verified.
+ */
+export async function verifyEmailById(userId) {
+  return UserModel.findByIdAndUpdate(
+    userId,
+    { $set: { isEmailVerified: true } },
+    { new: true }
+  );
+}
