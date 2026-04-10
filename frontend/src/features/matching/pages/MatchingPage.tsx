@@ -12,13 +12,15 @@ import {
   Spinner,
   Alert,
 } from "@heroui/react";
+import { useUserProfile } from "../../user/hooks/useUserProfile";
 
 const SOCKET_URL =
   import.meta.env.VITE_MATCHING_API_GATEWAY_URL ||
-  "http://localhost:3000/api/matching-service";
+  "http://localhost:3000";
 
 export default function MatchingPage() {
   const navigate = useNavigate();
+  const { data: user } = useUserProfile();
 
   // State for form inputs
   const [difficulty, setDifficulty] = useState("easy");
@@ -33,6 +35,7 @@ export default function MatchingPage() {
   // Initialize socket connection
   useEffect(() => {
     const newSocket = io(SOCKET_URL, {
+      path: "/api/matching-service/socket.io",
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -46,12 +49,12 @@ export default function MatchingPage() {
 
     newSocket.on(
       "match-found",
-      (data: { roomId: string; partnerId: string }) => {
+      (data: any ) => {
         console.log("Match found!", data);
         setIsSearching(false);
         // Navigate to collaboration room with the matched partner
-        navigate(`/collaboration/${data.roomId}`, {
-          state: { partnerId: data.partnerId },
+        navigate(`/room/${data.roomUrl?.roomId}`, {
+          state: { partnerUserId: data.partnerUserId },
         });
       },
     );
@@ -88,14 +91,12 @@ export default function MatchingPage() {
     setError(null);
     setIsSearching(true);
 
-    const userId = "user123"; // Replace with actual user ID from auth
-
     // Emit the find-match event
     socket.emit("find-match", {
-      userId,
-      language: selectedLanguages,
+      userId: user?.id,
+      languages: selectedLanguages,
       difficulty,
-      category: selectedTopics,
+      topics: selectedTopics,
     });
   };
 
@@ -147,8 +148,11 @@ export default function MatchingPage() {
             className="mt-4"
           >
             <Checkbox value="arrays">Arrays</Checkbox>
-            <Checkbox value="linked-lists">Linked Lists</Checkbox>
+            <Checkbox value="strings">Strings</Checkbox>
+            <Checkbox value="stacks">Stacks</Checkbox>
+            <Checkbox value="queues">Queues</Checkbox>
             <Checkbox value="trees">Trees</Checkbox>
+            <Checkbox value="graphs">Graphs</Checkbox>
           </CheckboxGroup>
 
           {/* Language selections */}

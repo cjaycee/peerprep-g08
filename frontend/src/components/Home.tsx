@@ -45,6 +45,14 @@ export default function Home() {
           </Button>
 
           <Button
+            color="primary"
+            className="w-full text-center"
+            onPress={() => navigate("/matching")}
+          >
+            <p className="text-white">Find a Match</p>
+          </Button>
+
+          <Button
             color="secondary"
             className="w-full text-center"
             onPress={() => navigate("/room")}

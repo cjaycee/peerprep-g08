@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import MatchingPage from "./features/matching/pages/MatchingPage.tsx"
 import QuestionPage from "./features/questions/pages/QuestionPage.tsx";
 import type { ReactNode } from "react";
 
@@ -11,7 +12,6 @@ import GenerateOTP from "./features/user/pages/GenerateOtp.tsx";
 import Home from "./components/Home.tsx";
 import CollabHome from "./features/collab/pages/Home.tsx";
 import Room from "./features/collab/pages/Room.tsx";
-import MatchingPage from "./features/matching/pages/MatchingPage.tsx";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const token = localStorage.getItem("token");
@@ -49,12 +49,12 @@ export default function App() {
           }
         />
 
-        <Route path="/matching" element={<MatchingPage />} />
-
         <Route path="/questions" element={<QuestionPage />} />
 
         <Route path="/profile" element={<Profile />} />
-
+        
+        <Route path="/matching" element={<MatchingPage />} />
+        
         <Route
           path="/admin/manage-users"
           element={
