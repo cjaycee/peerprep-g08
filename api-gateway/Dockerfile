@@ -16,6 +16,6 @@ WORKDIR /app
 COPY --from=builder /app ./
 
 # Expose the service port
-EXPOSE 3002
+EXPOSE 3000
 
 CMD ["node", "index.js"]

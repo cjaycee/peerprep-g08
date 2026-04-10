@@ -16,10 +16,15 @@
     "@tanstack/react-query-devtools": "^5.91.3",
     "axios": "^1.13.6",
     "framer-motion": "^12.37.0",
+    "monaco-editor": "^0.55.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "y-monaco": "^0.1.6",
+    "y-protocols": "^1.0.7",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.30"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

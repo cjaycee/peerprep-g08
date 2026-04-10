@@ -11,6 +11,12 @@ app.use(express.json());
 app.use(cors()); // config cors so that front-end can use
 app.options("*", cors());
 
+// Debugging: Log all incoming requests
+app.use((req, res, next) => {
+  console.log(`[USER-SERVICE] ${req.method} ${req.url}`);
+  next();
+});
+
 // To handle CORS Errors
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*"); // "*" -> Allow all links to access
@@ -38,6 +44,10 @@ app.get("/", (req, res, next) => {
   res.json({
     message: "Hello World from user-service",
   });
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "UP", service: "user-service" });
 });
 
 // Handle When No Route Match Is Found

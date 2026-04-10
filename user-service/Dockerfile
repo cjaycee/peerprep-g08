@@ -3,9 +3,11 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Copy package files and install dependencies
 COPY package*.json ./
 RUN npm ci --only=production
 
+# Copy source code
 COPY . .
 
 # Stage 2: Runtime
@@ -13,9 +15,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Copy only the necessary files from the builder
 COPY --from=builder /app ./
 
 # Expose the service port
-EXPOSE 3002
+EXPOSE 3001
 
-CMD ["node", "index.js"]
+# Start the service
+CMD ["node", "server.js"]
