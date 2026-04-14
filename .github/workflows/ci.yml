@@ -14,8 +14,7 @@ on:
       - "docker-compose.yml"
 
 jobs:
-
-  // Linting job for all services and frontend
+  # Linting job for all services and frontend
   lint:
     runs-on: ubuntu-latest
     name: Lint Services
@@ -54,7 +53,7 @@ jobs:
             npm run lint || echo "Linting issues in frontend (non-blocking)"
           fi
 
-  // Unit tests for user-service and question-service
+  # Unit tests for user-service and question-service
   unit-tests:
     runs-on: ubuntu-latest
     name: Unit Tests
