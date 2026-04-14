@@ -1,11 +1,22 @@
+jest.mock("../../model/collab-room-model.js", () => ({
+  __esModule: true,
+  default: {
+    getMessages: jest.fn(),
+    addMessage: jest.fn(),
+  },
+}));
+
+import CollabRoomModel from "../../model/collab-room-model.js";
 import socketHandler from "../../sockets/socket-handler.js";
 
 afterEach(() => jest.clearAllMocks());
 
+// Helpers
 function buildMocks() {
   const mockSocket = {
     id: "socket-id-1",
     join: jest.fn(),
+    emit: jest.fn(),
     on: jest.fn(),
   };
   const mockEmit = jest.fn();
@@ -52,13 +63,39 @@ describe("socketHandler — connection", () => {
 // join_room
 /////////////////////////////////////////////////////
 describe("join_room event", () => {
-  test("calls socket.join with the given roomId", () => {
+  test("calls socket.join with the given roomId", async () => {
+    CollabRoomModel.getMessages.mockResolvedValue([]);
     const { mockIo, mockSocket } = buildMocks();
     const getHandler = connect(mockIo, mockSocket);
 
-    getHandler("join_room")("room-abc");
+    await getHandler("join_room")("room-abc", { id: "u1" });
 
     expect(mockSocket.join).toHaveBeenCalledWith("room-abc");
+  });
+
+  test("loads persisted messages and emits load_messages to the socket", async () => {
+    const messages = [
+      { id: 1, text: "hello" },
+      { id: 2, text: "world" },
+    ];
+    CollabRoomModel.getMessages.mockResolvedValue(messages);
+    const { mockIo, mockSocket } = buildMocks();
+    const getHandler = connect(mockIo, mockSocket);
+
+    await getHandler("join_room")("room-abc", { id: "u1" });
+
+    expect(CollabRoomModel.getMessages).toHaveBeenCalledWith("room-abc");
+    expect(mockSocket.emit).toHaveBeenCalledWith("load_messages", messages);
+  });
+
+  test("emits load_messages with empty array when room has no messages", async () => {
+    CollabRoomModel.getMessages.mockResolvedValue([]);
+    const { mockIo, mockSocket } = buildMocks();
+    const getHandler = connect(mockIo, mockSocket);
+
+    await getHandler("join_room")("room-abc", { id: "u1" });
+
+    expect(mockSocket.emit).toHaveBeenCalledWith("load_messages", []);
   });
 });
 
@@ -66,53 +103,124 @@ describe("join_room event", () => {
 // send_message
 /////////////////////////////////////////////////////
 describe("send_message event", () => {
-  test("emits receive_message to the correct room with { id, text }", () => {
+  test("broadcasts receive_message to the correct room with full message shape", async () => {
+    CollabRoomModel.addMessage.mockResolvedValue(undefined);
     const { mockIo, mockSocket, mockEmit } = buildMocks();
     const getHandler = connect(mockIo, mockSocket);
 
-    getHandler("send_message")({ roomId: "r1", message: "hello" });
+    await getHandler("send_message")({
+      roomId: "r1",
+      message: "hello",
+      senderUsername: "alice",
+      senderId: "u1",
+    });
 
     expect(mockIo.to).toHaveBeenCalledWith("r1");
     expect(mockEmit).toHaveBeenCalledWith(
       "receive_message",
-      expect.objectContaining({ text: "hello" }),
+      expect.objectContaining({
+        text: "hello",
+        senderUsername: "alice",
+        senderId: "u1",
+      }),
     );
-    const msg = mockEmit.mock.calls[0][1];
-    expect(typeof msg.id).toBe("number");
   });
 
-  test("message id is set to Date.now()", () => {
+  test("message id is set to Date.now()", async () => {
+    CollabRoomModel.addMessage.mockResolvedValue(undefined);
+    jest.spyOn(Date, "now").mockReturnValue(99999);
     const { mockIo, mockSocket, mockEmit } = buildMocks();
     const getHandler = connect(mockIo, mockSocket);
-    jest.spyOn(Date, "now").mockReturnValue(99999);
 
-    getHandler("send_message")({ roomId: "r1", message: "hi" });
-
-    expect(mockEmit).toHaveBeenCalledWith("receive_message", {
-      id: 99999,
-      text: "hi",
+    await getHandler("send_message")({
+      roomId: "r1",
+      message: "hi",
+      senderUsername: "alice",
+      senderId: "u1",
     });
+
+    expect(mockEmit).toHaveBeenCalledWith(
+      "receive_message",
+      expect.objectContaining({ id: 99999 }),
+    );
     Date.now.mockRestore();
   });
 
-  test("empty string message is emitted as per original", () => {
+  test("defaults senderUsername to 'Unknown' when not provided", async () => {
+    CollabRoomModel.addMessage.mockResolvedValue(undefined);
     const { mockIo, mockSocket, mockEmit } = buildMocks();
     const getHandler = connect(mockIo, mockSocket);
 
-    getHandler("send_message")({ roomId: "r1", message: "" });
+    await getHandler("send_message")({ roomId: "r1", message: "hello" });
+
+    expect(mockEmit).toHaveBeenCalledWith(
+      "receive_message",
+      expect.objectContaining({ senderUsername: "Unknown" }),
+    );
+  });
+
+  test("defaults senderId to socket.id when not provided", async () => {
+    CollabRoomModel.addMessage.mockResolvedValue(undefined);
+    const { mockIo, mockSocket, mockEmit } = buildMocks();
+    const getHandler = connect(mockIo, mockSocket);
+
+    await getHandler("send_message")({ roomId: "r1", message: "hello" });
+
+    expect(mockEmit).toHaveBeenCalledWith(
+      "receive_message",
+      expect.objectContaining({ senderId: "socket-id-1" }),
+    );
+  });
+
+  test("persists the message via CollabRoomModel.addMessage before broadcasting", async () => {
+    CollabRoomModel.addMessage.mockResolvedValue(undefined);
+    const { mockIo, mockSocket, mockEmit } = buildMocks();
+    const getHandler = connect(mockIo, mockSocket);
+
+    await getHandler("send_message")({
+      roomId: "r1",
+      message: "hello",
+      senderUsername: "alice",
+      senderId: "u1",
+    });
+
+    expect(CollabRoomModel.addMessage).toHaveBeenCalledWith(
+      "r1",
+      expect.objectContaining({
+        text: "hello",
+        senderUsername: "alice",
+        senderId: "u1",
+      }),
+    );
+    // addMessage must be called before the broadcast
+    expect(CollabRoomModel.addMessage).toHaveBeenCalledTimes(1);
+    expect(mockEmit).toHaveBeenCalledTimes(1);
+  });
+
+  test("empty string message is still persisted and broadcast", async () => {
+    CollabRoomModel.addMessage.mockResolvedValue(undefined);
+    const { mockIo, mockSocket, mockEmit } = buildMocks();
+    const getHandler = connect(mockIo, mockSocket);
+
+    await getHandler("send_message")({ roomId: "r1", message: "" });
 
     expect(mockEmit).toHaveBeenCalledWith(
       "receive_message",
       expect.objectContaining({ text: "" }),
     );
+    expect(CollabRoomModel.addMessage).toHaveBeenCalledWith(
+      "r1",
+      expect.objectContaining({ text: "" }),
+    );
   });
 
-  test("broadcasts to the correct room when multiple calls use different roomIds", () => {
+  test("broadcasts to the correct room when multiple messages use different roomIds", async () => {
+    CollabRoomModel.addMessage.mockResolvedValue(undefined);
     const { mockIo, mockSocket } = buildMocks();
     const getHandler = connect(mockIo, mockSocket);
 
-    getHandler("send_message")({ roomId: "r1", message: "m1" });
-    getHandler("send_message")({ roomId: "r2", message: "m2" });
+    await getHandler("send_message")({ roomId: "r1", message: "m1" });
+    await getHandler("send_message")({ roomId: "r2", message: "m2" });
 
     expect(mockIo.to.mock.calls[0][0]).toBe("r1");
     expect(mockIo.to.mock.calls[1][0]).toBe("r2");
@@ -123,7 +231,7 @@ describe("send_message event", () => {
 // disconnect
 /////////////////////////////////////////////////////
 describe("disconnect event", () => {
-  test("does not throw error when the disconnect handler is called", () => {
+  test("does not throw when the disconnect handler is called", () => {
     const { mockIo, mockSocket } = buildMocks();
     const getHandler = connect(mockIo, mockSocket);
     expect(() => getHandler("disconnect")()).not.toThrow();
