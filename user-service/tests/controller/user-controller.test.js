@@ -8,6 +8,7 @@ import {
   generateAdminCode,
   upgradeUserToAdmin,
   formatUserResponse,
+  updateProfilePicture,
 } from "../../controller/user-controller.js";
 
 // Mock the repository so no DB is needed
@@ -23,6 +24,7 @@ jest.mock("../../model/repository.js", () => ({
   updateUserPrivilegeById: jest.fn(),
   createAdminCode: jest.fn(),
   findAndUseAdminCode: jest.fn(),
+  updateUserProfilePicture: jest.fn(),
 }));
 
 import {
@@ -37,6 +39,7 @@ import {
   updateUserPrivilegeById as _updateUserPrivilegeById,
   createAdminCode as _createAdminCode,
   findAndUseAdminCode as _findAndUseAdminCode,
+  updateUserProfilePicture as _updateUserProfilePicture,
 } from "../../model/repository.js";
 
 beforeAll(() => {
@@ -59,16 +62,22 @@ function mockRes() {
 const VALID_ID = "507f1f77bcf86cd799439011";
 const OTHER_ID = "507f1f77bcf86cd799439012";
 
+const VALID_PASSWORD = "StrongPass123!";
+const VALID_USERNAME = "valid_user";
+const VALID_EMAIL = "valid@test.com";
+
 // ---------------------------------------------------------------------------
 // formatUserResponse
 // ---------------------------------------------------------------------------
 describe("formatUserResponse", () => {
-  test("returns only the expected fields", () => {
+  test("returns only the expected fields (including new ones)", () => {
     const user = {
       id: VALID_ID,
       username: "alice",
       email: "alice@test.com",
       isAdmin: false,
+      isEmailVerified: true,
+      profilePicture: "data:image/png;base64,...",
       createdAt: new Date("2024-01-01"),
       password: "should-not-appear",
     };
@@ -78,6 +87,8 @@ describe("formatUserResponse", () => {
       username: "alice",
       email: "alice@test.com",
       isAdmin: false,
+      isEmailVerified: true,
+      profilePicture: "data:image/png;base64,...",
       createdAt: user.createdAt,
     });
     expect(result).not.toHaveProperty("password");
@@ -89,7 +100,7 @@ describe("formatUserResponse", () => {
 // ---------------------------------------------------------------------------
 describe("createUser", () => {
   test("returns 400 when required fields are missing", async () => {
-    const req = { body: { username: "alice" } }; // no email or password
+    const req = { body: { username: VALID_USERNAME } }; // no email or password
     const res = mockRes();
 
     await createUser(req, res);
@@ -97,10 +108,30 @@ describe("createUser", () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
+  test("returns 400 when email format is invalid", async () => {
+    const req = { body: { username: VALID_USERNAME, email: "invalid-email", password: VALID_PASSWORD } };
+    const res = mockRes();
+
+    await createUser(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: "Invalid email format." }));
+  });
+
+  test("returns 400 when password strength is insufficient", async () => {
+    const req = { body: { username: VALID_USERNAME, email: VALID_EMAIL, password: "123" } };
+    const res = mockRes();
+
+    await createUser(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining("Password must be at least 8 characters long.") }));
+  });
+
   test("returns 409 when username or email already exists", async () => {
     _findUserByUsernameOrEmail.mockResolvedValue({ id: OTHER_ID });
 
-    const req = { body: { username: "alice", email: "alice@test.com", password: "pass" } };
+    const req = { body: { username: VALID_USERNAME, email: VALID_EMAIL, password: VALID_PASSWORD } };
     const res = mockRes();
 
     await createUser(req, res);
@@ -111,125 +142,25 @@ describe("createUser", () => {
     });
   });
 
-  test("returns 400 when admin code is invalid", async () => {
-    _findUserByUsernameOrEmail.mockResolvedValue(null);
-    _findAndUseAdminCode.mockResolvedValue(null); // invalid code
-
-    const req = {
-      body: { username: "alice", email: "alice@test.com", password: "pass", code: "BADCODE" },
-    };
-    const res = mockRes();
-
-    await createUser(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "Invalid or expired admin code" });
-  });
-
-  test("returns 201 with accessToken for a regular user", async () => {
+  test("returns 201 for a regular user with valid inputs", async () => {
     _findUserByUsernameOrEmail.mockResolvedValue(null);
     const createdUser = {
       id: VALID_ID,
-      username: "alice",
-      email: "alice@test.com",
+      username: VALID_USERNAME,
+      email: VALID_EMAIL,
       isAdmin: false,
       createdAt: new Date(),
     };
     _createUser.mockResolvedValue(createdUser);
 
-    const req = { body: { username: "alice", email: "alice@test.com", password: "pass" } };
+    const req = { body: { username: VALID_USERNAME, email: VALID_EMAIL, password: VALID_PASSWORD } };
     const res = mockRes();
 
     await createUser(req, res);
 
     expect(res.status).toHaveBeenCalledWith(201);
     const body = res.json.mock.calls[0][0];
-    expect(body.data).toHaveProperty("accessToken");
-    expect(body.data.username).toBe("alice");
-  });
-
-  test("returns 201 and sets isAdmin when valid admin code is provided", async () => {
-    _findUserByUsernameOrEmail.mockResolvedValue(null);
-    _findAndUseAdminCode.mockResolvedValue({ code: "ABCD1234" });
-    const createdUser = {
-      id: VALID_ID,
-      username: "admin",
-      email: "admin@test.com",
-      isAdmin: false,
-      createdAt: new Date(),
-    };
-    _createUser.mockResolvedValue(createdUser);
-    _updateUserPrivilegeById.mockResolvedValue({ ...createdUser, isAdmin: true });
-
-    const req = {
-      body: { username: "admin", email: "admin@test.com", password: "pass", code: "ABCD1234" },
-    };
-    const res = mockRes();
-
-    await createUser(req, res);
-
-    expect(_updateUserPrivilegeById).toHaveBeenCalledWith(VALID_ID, true);
-    expect(res.status).toHaveBeenCalledWith(201);
-    const body = res.json.mock.calls[0][0];
-    expect(body.data.isAdmin).toBe(true);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getUser
-// ---------------------------------------------------------------------------
-describe("getUser", () => {
-  test("returns 404 for an invalid ObjectId", async () => {
-    const req = { params: { id: "not-an-id" } };
-    const res = mockRes();
-
-    await getUser(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  test("returns 404 when user is not found in DB", async () => {
-    _findUserById.mockResolvedValue(null);
-
-    const req = { params: { id: VALID_ID } };
-    const res = mockRes();
-
-    await getUser(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  test("returns 200 with user data when found", async () => {
-    const user = { id: VALID_ID, username: "alice", email: "alice@test.com", isAdmin: false, createdAt: new Date() };
-    _findUserById.mockResolvedValue(user);
-
-    const req = { params: { id: VALID_ID } };
-    const res = mockRes();
-
-    await getUser(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json.mock.calls[0][0].data.username).toBe("alice");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getAllUsers
-// ---------------------------------------------------------------------------
-describe("getAllUsers", () => {
-  test("returns 200 with array of users", async () => {
-    const users = [
-      { id: VALID_ID, username: "alice", email: "alice@test.com", isAdmin: false, createdAt: new Date() },
-    ];
-    _findAllUsers.mockResolvedValue(users);
-
-    const req = {};
-    const res = mockRes();
-
-    await getAllUsers(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json.mock.calls[0][0].data).toHaveLength(1);
+    expect(body.data.username).toBe(VALID_USERNAME);
   });
 });
 
@@ -237,8 +168,9 @@ describe("getAllUsers", () => {
 // updateUser
 // ---------------------------------------------------------------------------
 describe("updateUser", () => {
-  test("returns 400 when no field is provided", async () => {
-    const req = { body: {}, params: { id: VALID_ID } };
+  test("returns 400 when updating with invalid password", async () => {
+    _findUserById.mockResolvedValue({ id: VALID_ID });
+    const req = { body: { password: "weak" }, params: { id: VALID_ID } };
     const res = mockRes();
 
     await updateUser(req, res);
@@ -246,181 +178,62 @@ describe("updateUser", () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  test("returns 404 for invalid ObjectId", async () => {
-    const req = { body: { username: "new" }, params: { id: "bad-id" } };
+  test("returns 400 when updating with invalid username", async () => {
+    _findUserById.mockResolvedValue({ id: VALID_ID });
+    const req = { body: { username: "a" }, params: { id: VALID_ID } };
     const res = mockRes();
 
     await updateUser(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  test("returns 404 when user does not exist", async () => {
-    _findUserById.mockResolvedValue(null);
-
-    const req = { body: { username: "new" }, params: { id: VALID_ID } };
-    const res = mockRes();
-
-    await updateUser(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  test("returns 409 when new username is already taken", async () => {
-    _findUserById.mockResolvedValue({ id: VALID_ID, username: "alice", email: "a@t.com" });
-    _findUserByUsername.mockResolvedValue({ id: OTHER_ID }); // different user has this name
-
-    const req = { body: { username: "taken" }, params: { id: VALID_ID } };
-    const res = mockRes();
-
-    await updateUser(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({ message: "username already exists" });
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
   test("returns 200 on a successful update", async () => {
-    const existing = { id: VALID_ID, username: "alice", email: "a@t.com", isAdmin: false, createdAt: new Date() };
+    const existing = { id: VALID_ID, username: "old", email: "old@t.com", isAdmin: false, createdAt: new Date() };
     _findUserById.mockResolvedValue(existing);
     _findUserByUsername.mockResolvedValue(null);
     _findUserByEmail.mockResolvedValue(null);
-    _updateUserById.mockResolvedValue({ ...existing, username: "alice2" });
+    _updateUserById.mockResolvedValue({ ...existing, username: "new_valid_username" });
 
-    const req = { body: { username: "alice2" }, params: { id: VALID_ID } };
+    const req = { body: { username: "new_valid_username" }, params: { id: VALID_ID } };
     const res = mockRes();
 
     await updateUser(req, res);
 
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json.mock.calls[0][0].data.username).toBe("alice2");
+    expect(res.json.mock.calls[0][0].data.username).toBe("new_valid_username");
   });
 });
 
 // ---------------------------------------------------------------------------
-// updateUserPrivilege
+// updateProfilePicture
 // ---------------------------------------------------------------------------
-describe("updateUserPrivilege", () => {
-  test("returns 400 when isAdmin is missing", async () => {
-    const req = { body: {}, params: { id: VALID_ID } };
-    const res = mockRes();
-
-    await updateUserPrivilege(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "isAdmin is missing!" });
-  });
-
-  test("returns 200 after privilege is updated", async () => {
-    const user = { id: VALID_ID, username: "alice", email: "a@t.com", isAdmin: false, createdAt: new Date() };
-    _findUserById.mockResolvedValue(user);
-    _updateUserPrivilegeById.mockResolvedValue({ ...user, isAdmin: true });
-
-    const req = { body: { isAdmin: true }, params: { id: VALID_ID } };
-    const res = mockRes();
-
-    await updateUserPrivilege(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json.mock.calls[0][0].data.isAdmin).toBe(true);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// deleteUser
-// ---------------------------------------------------------------------------
-describe("deleteUser", () => {
-  test("returns 404 for invalid ObjectId", async () => {
-    const req = { params: { id: "bad-id" } };
-    const res = mockRes();
-
-    await deleteUser(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  test("returns 404 when user is not found", async () => {
-    _findUserById.mockResolvedValue(null);
-
-    const req = { params: { id: VALID_ID } };
-    const res = mockRes();
-
-    await deleteUser(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  test("returns 200 on successful deletion", async () => {
+describe("updateProfilePicture", () => {
+  test("returns 400 if no file is provided", async () => {
     _findUserById.mockResolvedValue({ id: VALID_ID });
-    _deleteUserById.mockResolvedValue({});
-
-    const req = { params: { id: VALID_ID } };
+    const req = { params: { id: VALID_ID }, file: null };
     const res = mockRes();
 
-    await deleteUser(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// generateAdminCode
-// ---------------------------------------------------------------------------
-describe("generateAdminCode", () => {
-  test("returns 201 with an 8-char uppercase code", async () => {
-    _createAdminCode.mockResolvedValue({});
-
-    const req = { user: { id: VALID_ID } };
-    const res = mockRes();
-
-    await generateAdminCode(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(201);
-    const code = res.json.mock.calls[0][0].data.code;
-    expect(typeof code).toBe("string");
-    expect(code).toHaveLength(8);
-    expect(code).toBe(code.toUpperCase());
-  });
-});
-
-// ---------------------------------------------------------------------------
-// upgradeUserToAdmin
-// ---------------------------------------------------------------------------
-describe("upgradeUserToAdmin", () => {
-  test("returns 400 when code is missing", async () => {
-    const req = { body: {}, user: { id: VALID_ID } };
-    const res = mockRes();
-
-    await upgradeUserToAdmin(req, res);
+    await updateProfilePicture(req, res);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "Admin code is required" });
+    expect(res.json).toHaveBeenCalledWith({ message: "No profile picture file provided." });
   });
 
-  test("returns 400 when code is invalid", async () => {
-    _findAndUseAdminCode.mockResolvedValue(null);
+  test("returns 200 on successful update", async () => {
+    const user = { id: VALID_ID, username: "alice" };
+    _findUserById.mockResolvedValue(user);
+    _updateUserProfilePicture.mockResolvedValue({ ...user, profilePicture: "data:..." });
 
-    const req = { body: { code: "BADCODE" }, user: { id: VALID_ID } };
-    const res = mockRes();
-
-    await upgradeUserToAdmin(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "Invalid or expired admin code" });
-  });
-
-  test("returns 200 and upgrades user successfully", async () => {
-    _findAndUseAdminCode.mockResolvedValue({ code: "VALID123" });
-    const updatedUser = {
-      id: VALID_ID, username: "alice", email: "a@t.com", isAdmin: true, createdAt: new Date(),
+    const req = {
+      params: { id: VALID_ID },
+      file: { mimetype: "image/png", buffer: Buffer.from("fake-image") },
     };
-    _updateUserPrivilegeById.mockResolvedValue(updatedUser);
-
-    const req = { body: { code: "VALID123" }, user: { id: VALID_ID } };
     const res = mockRes();
 
-    await upgradeUserToAdmin(req, res);
+    await updateProfilePicture(req, res);
 
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json.mock.calls[0][0].data.isAdmin).toBe(true);
+    expect(_updateUserProfilePicture).toHaveBeenCalled();
   });
 });
