@@ -11,6 +11,11 @@ interface CollabEditorProps {
   language?: string;
   readOnly?: boolean;
   username: string;
+  /**
+   * Called with a debounced snapshot of the current editor content.
+   * Used to provide server-side AI with code context.
+   */
+  onCodeChange?: (code: string) => void;
 }
 
 function hashUsernameToColor(username: string): string {
@@ -61,6 +66,7 @@ export default function CollabEditor({
   language = "python",
   readOnly = false,
   username,
+  onCodeChange,
 }: CollabEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const { ydoc, wsProvider } = useYjs(roomId);
@@ -75,6 +81,27 @@ export default function CollabEditor({
       new Set([editor]),
       wsProvider.awareness,
     );
+
+    // Keep a debounced snapshot of code for AI context.
+    // (We intentionally avoid emitting on every keystroke.)
+    let codeSnapshotTimeout: ReturnType<typeof setTimeout> | null = null;
+    const emitCodeSnapshot = () => {
+      if (!onCodeChange) return;
+      onCodeChange(yText.toString());
+    };
+
+    const handleYTextChange = () => {
+      if (!onCodeChange) return;
+      if (codeSnapshotTimeout) clearTimeout(codeSnapshotTimeout);
+      codeSnapshotTimeout = setTimeout(() => {
+        emitCodeSnapshot();
+      }, 200);
+    };
+
+    if (onCodeChange) {
+      emitCodeSnapshot();
+      yText.observe(handleYTextChange);
+    }
     wsProvider.awareness.setLocalStateField("user", {
       name: username,
       color: hashUsernameToColor(username),
@@ -147,7 +174,13 @@ export default function CollabEditor({
     const node = editor.getContainerDomNode();
     if (node.parentElement) ro.observe(node.parentElement);
 
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (onCodeChange) {
+        yText.unobserve(handleYTextChange);
+      }
+      if (codeSnapshotTimeout) clearTimeout(codeSnapshotTimeout);
+    };
   };
 
   // Sync language changes without remounting
