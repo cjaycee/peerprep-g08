@@ -3,7 +3,8 @@ const { getQueueKeys } = require('../utils/queueKeys');
 const { socketState, findQueues, cleanupSocket } = require('../services/matchingService');
 
 const handleFindMatch = async (io, socket, data) => {
-  const { userId, languages, topics, difficulty } = data;
+  const { languages, topics, difficulty } = data;
+  const userId = socket.userId; // sourced from verified JWT, not client payload
 
   // Basic validation
   if (!userId || !Array.isArray(languages) || languages.length === 0 ||
