@@ -9,12 +9,15 @@ jest.mock('../config/redis', () => ({
 const mockFindQueues = jest.fn().mockResolvedValue(undefined);
 const mockCleanupSocket = jest.fn().mockResolvedValue(undefined);
 const mockSocketState = new Map();
+const mockUserSocketMap = new Map();
 
 jest.mock('../services/matchingService', () => ({
   get socketState() { return mockSocketState; },
+  get userSocketMap() { return mockUserSocketMap; },
   findQueues: (...args) => mockFindQueues(...args),
   cleanupSocket: (...args) => mockCleanupSocket(...args),
 }));
+
 
 const redisClient = require('../config/redis');
 const { handleFindMatch, handleCancelMatch, handleDisconnect } = require('../controllers/matchController');
@@ -36,6 +39,7 @@ function makeIo() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockSocketState.clear();
+  mockUserSocketMap.clear();
   redisClient.set.mockResolvedValue('OK');
 });
 

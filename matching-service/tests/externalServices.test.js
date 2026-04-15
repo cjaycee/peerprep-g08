@@ -100,14 +100,14 @@ describe('createCollaborationRoom', () => {
   test('POSTs to /rooms/create with the questionId in the body', async () => {
     global.fetch = jest.fn().mockResolvedValue(mockResponse({ body: roomData }));
 
-    await createCollaborationRoom(question, 'user1', 'user2');
+    await createCollaborationRoom(question, [{ id: 'user1', username: 'alice' }, { id: 'user2', username: 'bob' }]);
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/rooms/create'),
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionId: 'q123' }),
+        body: JSON.stringify({ questionId: 'q123', allowedUsers: [{ id: 'user1', username: 'alice' }, { id: 'user2', username: 'bob' }] }),
       })
     );
   });
@@ -115,7 +115,7 @@ describe('createCollaborationRoom', () => {
   test('returns the room data on success', async () => {
     global.fetch = jest.fn().mockResolvedValue(mockResponse({ body: roomData }));
 
-    const result = await createCollaborationRoom(question, 'user1', 'user2');
+    const result = await createCollaborationRoom(question, [{ id: 'user1' }, { id: 'user2' }]);
 
     expect(result).toEqual(roomData);
   });
@@ -123,7 +123,7 @@ describe('createCollaborationRoom', () => {
   test('returns null when the HTTP response is not ok', async () => {
     global.fetch = jest.fn().mockResolvedValue(mockResponse({ ok: false }));
 
-    const result = await createCollaborationRoom(question, 'user1', 'user2');
+    const result = await createCollaborationRoom(question, [{ id: 'user1' }, { id: 'user2' }]);
 
     expect(result).toBeNull();
   });
@@ -131,7 +131,7 @@ describe('createCollaborationRoom', () => {
   test('returns null when fetch throws a network error', async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('connection refused'));
 
-    const result = await createCollaborationRoom(question, 'user1', 'user2');
+    const result = await createCollaborationRoom(question, [{ id: 'user1' }, { id: 'user2' }]);
 
     expect(result).toBeNull();
   });
@@ -139,12 +139,12 @@ describe('createCollaborationRoom', () => {
   test('handles a null question gracefully (sends questionId: undefined)', async () => {
     global.fetch = jest.fn().mockResolvedValue(mockResponse({ body: roomData }));
 
-    await createCollaborationRoom(null, 'user1', 'user2');
+    await createCollaborationRoom(null, [{ id: 'user1' }, { id: 'user2' }]);
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
-        body: JSON.stringify({ questionId: undefined }),
+        body: JSON.stringify({ questionId: undefined, allowedUsers: [{ id: 'user1' }, { id: 'user2' }] }),
       })
     );
   });
