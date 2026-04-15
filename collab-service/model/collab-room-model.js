@@ -52,12 +52,14 @@ export default class CollabRoomModel {
       return { error: null, data: room };
     if (room.users.length >= 2) return { error: "Room is full", data: null };
 
+    // Atomic query
     const updated = await CollabRoom.findOneAndUpdate(
-      { roomId },
+      { roomId, $expr: { $lt: [{ $size: "$users" }, 2] } },
       { $push: { users: user } },
       { new: true },
     );
 
+    if (!updated) return { error: "Room is full", data: null };
     return { error: null, data: updated };
   }
 

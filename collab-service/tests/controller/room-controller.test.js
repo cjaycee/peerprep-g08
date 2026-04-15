@@ -62,7 +62,6 @@ describe("createRoom", () => {
     expect(res.status).not.toHaveBeenCalled();
   });
 
-  // J2: allowedUsers forwarding
   test("passes allowedUsers from request body to CollabRoomModel.create", async () => {
     uuidv4.mockReturnValue("test-uuid");
     CollabRoomModel.create.mockResolvedValue({

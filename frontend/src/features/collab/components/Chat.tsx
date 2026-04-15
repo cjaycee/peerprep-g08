@@ -28,11 +28,6 @@ export default function Chat({
   const navigate = useNavigate();
 
   useEffect(() => {
-    socket.emit("join_room", roomId, {
-      id: currentUserId,
-      username: currentUsername,
-    });
-
     // Listen for persisted messages from room
     socket.on("load_messages", (initialMessages: Message[]) => {
       setMessages(initialMessages);
@@ -65,6 +60,11 @@ export default function Chat({
           isSystem: true,
         },
       ]);
+    });
+
+    socket.emit("join_room", roomId, {
+      id: currentUserId,
+      username: currentUsername,
     });
 
     return () => {

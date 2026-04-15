@@ -140,11 +140,21 @@ describe("CollabRoomModel.addUserToRoom", () => {
     const result = await CollabRoomModel.addUserToRoom("r1", { id: "u2" });
 
     expect(mockCollabRoom.findOneAndUpdate).toHaveBeenCalledWith(
-      { roomId: "r1" },
+      { roomId: "r1", $expr: { $lt: [{ $size: "$users" }, 2] } },
       { $push: { users: { id: "u2" } } },
       { new: true },
     );
     expect(result).toEqual({ error: null, data: updatedRoom });
+  });
+
+  test("returns Room is full when findOneAndUpdate resolves null (race condition: room filled between read and write)", async () => {
+    const roomWithOneUser = { roomId: "r1", users: [{ id: "u1" }] };
+    mockCollabRoom.findOne.mockResolvedValue(roomWithOneUser);
+    mockCollabRoom.findOneAndUpdate.mockResolvedValue(null);
+
+    const result = await CollabRoomModel.addUserToRoom("r1", { id: "u2" });
+
+    expect(result).toEqual({ error: "Room is full", data: null });
   });
   ///////////////////////////////////////////////////////
   // edge case test: cannot join a room that has ended
