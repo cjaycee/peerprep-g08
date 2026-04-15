@@ -12,16 +12,12 @@ import {
   Spinner,
   Alert,
 } from "@heroui/react";
-import { useUserProfile } from "../../user/hooks/useUserProfile";
-
 const SOCKET_URL =
   import.meta.env.VITE_MATCHING_API_GATEWAY_URL ||
   "http://localhost:3000";
 
 export default function MatchingPage() {
   const navigate = useNavigate();
-  const { data: user } = useUserProfile();
-
   // State for form inputs
   const [difficulty, setDifficulty] = useState("easy");
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
@@ -29,13 +25,16 @@ export default function MatchingPage() {
 
   // State for matching
   const [isSearching, setIsSearching] = useState(false);
+  const [searchStatus, setSearchStatus] = useState("Searching for a match...");
   const [error, setError] = useState<string | null>(null);
   const [socket, setSocket] = useState<any>(null);
 
   // Initialize socket connection
   useEffect(() => {
+    const token = localStorage.getItem("token");
     const newSocket = io(SOCKET_URL, {
       path: "/api/matching-service/socket.io",
+      auth: { token: `Bearer ${token}` },
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -45,6 +44,11 @@ export default function MatchingPage() {
     newSocket.on("connect", () => {
       console.log("Connected to matching service");
       setError(null);
+    });
+
+    newSocket.on("connect_error", (err: Error) => {
+      console.error("Socket connection error:", err.message);
+      setError("Failed to connect to matching service. Please log in again.");
     });
 
     newSocket.on(
@@ -59,10 +63,21 @@ export default function MatchingPage() {
       },
     );
 
+    newSocket.on("criteria-relaxed", (data: { level: number; message: string }) => {
+      console.log("Criteria relaxed:", data.message);
+      setSearchStatus(data.message);
+    });
+
     newSocket.on("match-timeout", (data: { message: string }) => {
       console.log("Match timeout:", data.message);
       setIsSearching(false);
       setError("No match found within 2 minutes. Please try again.");
+    });
+
+    newSocket.on("match-error", (data: { message: string }) => {
+      console.error("Match error:", data.message);
+      setIsSearching(false);
+      setError(data.message);
     });
 
     newSocket.on("disconnect", () => {
@@ -90,10 +105,10 @@ export default function MatchingPage() {
 
     setError(null);
     setIsSearching(true);
+    setSearchStatus("Searching for a match...");
 
     // Emit the find-match event
     socket.emit("find-match", {
-      userId: user?.id,
       languages: selectedLanguages,
       difficulty,
       topics: selectedTopics,
@@ -182,7 +197,7 @@ export default function MatchingPage() {
             <>
               <div className="flex justify-center items-center gap-2 mt-6">
                 <Spinner size="sm" />
-                <span>Searching for a match...</span>
+                <span>{searchStatus}</span>
               </div>
               <Button
                 className="mt-4 w-full"
