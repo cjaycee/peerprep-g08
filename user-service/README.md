@@ -25,9 +25,37 @@
 
 6. In the `user-service` directory, create a copy of the `.env.sample` file and name it `.env`.
 
-7. Update the `DB_CLOUD_URI` of the `.env` file, and paste the string we copied earlier in **step 5**. Also remember to replace the `<db_password>` placeholder with the **actual password**.
+7. Update the `.env` file with your configuration. Refer to the [Environment Variables](#environment-variables) section below for detailed instructions on each field.
 
-> ⚠️ Warning: If the password contains special characters, make sure to URL-encode them before placing them in the connection string. For example, if your password is `P@ssword`, you should replace `@` with `%40`, resulting in `P%40ssword`.
+## Environment Variables
+
+The `user-service` requires several environment variables to function correctly. These should be defined in a `.env` file in the `user-service` directory.
+
+### Database Configuration
+- `DB_CLOUD_URI`: Your MongoDB Atlas connection string (e.g., `mongodb+srv://<username>:<password>@cluster.mongodb.net/user_service_db`).
+- `DB_LOCAL_URI`: Your local MongoDB connection string (e.g., `mongodb://127.0.0.1:27017/peerprepUserServiceDB`).
+- `ENV`: Set to `PROD` to use the cloud database or `DEV` for the local instance.
+
+### Server & Authentication
+- `PORT`: The port the service runs on (default: `3001`).
+- `JWT_SECRET`: A secure random string used to sign JWT tokens for user authentication.
+
+### SMTP Configuration (OTP Verification)
+These variables are required to send OTP verification emails during registration.
+
+- `SMTP_HOST`: The SMTP server address (e.g., `smtp.gmail.com`).
+- `SMTP_PORT`: The SMTP server port (usually `587` for TLS).
+- `SMTP_SECURE`: Use `false` for STARTTLS (typical for port 587).
+- `SMTP_USER`: Your email address.
+- `SMTP_PASS`: Your email password or **App Password** (recommended).
+- `SMTP_FROM`: The email address that will appear in the "From" field.
+
+#### 📧 Gmail Setup (Recommended)
+If you are using Gmail, you **must** use an App Password because standard passwords are blocked for third-party apps:
+1. Enable **Two-Factor Authentication (2FA)** on your Google Account.
+2. Go to [Google App Passwords](https://myaccount.google.com/apppasswords).
+3. Create a new App Password (select "Other" and name it "PeerPrep").
+4. Copy the **16-character code** and paste it into `SMTP_PASS` in your `.env`.
 
 ## Running User Service
 
