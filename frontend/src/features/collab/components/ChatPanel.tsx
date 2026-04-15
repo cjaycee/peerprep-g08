@@ -5,9 +5,15 @@ interface ChatPanelProps {
   roomId: string;
   currentUsername: string;
   currentUserId: string;
+  codeContext: string;
 }
 
-export default function ChatPanel({ roomId, currentUsername, currentUserId }: ChatPanelProps) {
+export default function ChatPanel({
+  roomId,
+  currentUsername,
+  currentUserId,
+  codeContext,
+}: ChatPanelProps) {
   return (
     <Card
       className="flex flex-col h-full rounded-none border-none shadow-none bg-content1"
@@ -26,7 +32,12 @@ export default function ChatPanel({ roomId, currentUsername, currentUserId }: Ch
       </CardHeader>
       <Divider className="flex-none" />
       <CardBody className="flex-1 overflow-hidden p-4">
-        <Chat roomId={roomId} currentUsername={currentUsername} currentUserId={currentUserId} />
+        <Chat
+          roomId={roomId}
+          currentUsername={currentUsername}
+          currentUserId={currentUserId}
+          codeContext={codeContext}
+        />
       </CardBody>
     </Card>
   );

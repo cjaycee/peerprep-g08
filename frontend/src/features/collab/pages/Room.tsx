@@ -46,6 +46,9 @@ export default function Room() {
   const [language, setLanguage] = useState("python");
   const [roomReady, setRoomReady] = useState(false);
   const [questionId, setQuestionId] = useState<string | null>(null);
+
+  // Latest editor content snapshot, used as AI context for @AI chat requests.
+  const [codeContext, setCodeContext] = useState("");
   
   // Get current user data from localStorage
   const getUserFromStorage = () => {
@@ -191,13 +194,19 @@ export default function Room() {
                     roomId={id!}
                     language={language}
                     username={user.username}
+                    onCodeChange={setCodeContext}
                   />
                 </EditorPanel>
               </PanelErrorBoundary>
             }
             chatPanel={
               <PanelErrorBoundary fallbackLabel="Chat panel error">
-                <ChatPanel roomId={id!} currentUsername={currentUser.username} currentUserId={currentUser.id} />
+                <ChatPanel
+                  roomId={id!}
+                  currentUsername={currentUser.username}
+                  currentUserId={currentUser.id}
+                  codeContext={codeContext}
+                />
               </PanelErrorBoundary>
             }
           />
