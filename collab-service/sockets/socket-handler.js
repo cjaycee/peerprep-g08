@@ -67,9 +67,7 @@ export default function socketHandler(io) {
       },
     );
 
-    // Voluntary leave (e.g. browser back button, component unmount).
-    // Cleans up activeConnections and notifies partner, then prevents the
-    // "disconnect" handler from double-processing the same room slot.
+    // Handles voluntary leave (i.e. back button in browser)
     socket.on("leave_room", () => {
       const { roomId, userId } = socket;
       if (roomId && userId) {

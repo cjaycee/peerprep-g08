@@ -9,8 +9,8 @@ export function createRoomController(io) {
    * Body: { questionId?: string }
    */
   const createRoom = async (req, res) => {
-    const { roomId, questionId = null, allowedUsers = [] } = req.body ?? {};
-    const id = roomId || uuidv4();
+    const id = uuidv4();
+    const { questionId = null, allowedUsers = [] } = req.body ?? {};
     const room = await CollabRoomModel.create(id, questionId, allowedUsers);
 
     res.json({ roomId: room.roomId, questionId: room.questionId });

@@ -94,6 +94,7 @@ export default function MatchingPage() {
     // Emit the find-match event
     socket.emit("find-match", {
       userId: user?.id,
+      username: user?.username,
       languages: selectedLanguages,
       difficulty,
       topics: selectedTopics,

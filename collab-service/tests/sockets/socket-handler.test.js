@@ -619,7 +619,7 @@ describe("disconnect — room not auto-ended when users disconnect (D2)", () => 
 });
 
 /////////////////////////////////////////////////////
-// leave_room — voluntary navigation-away cleanup
+// leave_room
 /////////////////////////////////////////////////////
 describe("leave_room event", () => {
   test("emits user_disconnected to the room with the userId", async () => {

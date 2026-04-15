@@ -132,7 +132,12 @@ async function finalizeMatch(io, socket, candidate, queueKey) {
   // Future api calls to question repo and collab service.
   const { fetchQuestion, createCollaborationRoom } = require('./externalServices');
   const question = await fetchQuestion(topic, difficulty);
-  const roomUrl  = await createCollaborationRoom(question, state?.userId, candidate.userId);
+
+  const allowedUsers = [
+    { id: state?.userId, username: state?.username || '' },
+    { id: candidate.userId, username: candidate.username || '' },
+  ];
+  const roomUrl  = await createCollaborationRoom(question, allowedUsers);
 
   const matchPayload = {
     roomUrl,
