@@ -72,8 +72,8 @@ export function createRoomController(io) {
 
     io.to(roomId).emit("room_ended");
 
-    await finalizeRoom(roomId);
     await CollabRoomModel.endRoom(roomId);
+    await finalizeRoom(roomId);
 
     res.json({ success: true });
   };

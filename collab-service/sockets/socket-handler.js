@@ -67,6 +67,27 @@ export default function socketHandler(io) {
       },
     );
 
+    // Voluntary leave (e.g. browser back button, component unmount).
+    // Cleans up activeConnections and notifies partner, then prevents the
+    // "disconnect" handler from double-processing the same room slot.
+    socket.on("leave_room", () => {
+      const { roomId, userId } = socket;
+      if (roomId && userId) {
+        const roomConnections = activeConnections.get(roomId);
+        if (roomConnections) {
+          roomConnections.delete(userId);
+          if (roomConnections.size === 0) {
+            activeConnections.delete(roomId);
+          }
+        }
+        socket.to(roomId).emit("user_disconnected", { userId });
+        socket.leave(roomId);
+        // Clear so the subsequent "disconnect" event is a no-op for this room
+        socket.roomId = undefined;
+        socket.userId = undefined;
+      }
+    });
+
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
 
@@ -79,7 +100,6 @@ export default function socketHandler(io) {
             activeConnections.delete(roomId);
           }
         }
-        // TODO: add listener to user_disconnected event in frontend
         socket.to(roomId).emit("user_disconnected", { userId });
       }
     });

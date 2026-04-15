@@ -40,10 +40,32 @@ function buildControllers() {
 // createRoom
 /////////////////////////////////////////////////////
 describe("createRoom", () => {
-  test("generates a uuid, creates the room, and returns 200 with roomId and questionId", async () => {
-    uuidv4.mockReturnValue("test-uuid");
+  test("uses the caller-supplied roomId when provided", async () => {
     CollabRoomModel.create.mockResolvedValue({
-      roomId: "test-uuid",
+      roomId: "caller-uuid",
+      questionId: "q1",
+    });
+
+    const { createRoom } = buildControllers();
+    const req = { body: { roomId: "caller-uuid", questionId: "q1" } };
+    const res = mockRes();
+
+    await createRoom(req, res);
+
+    // uuidv4 must NOT have been called — the caller's id wins
+    expect(uuidv4).not.toHaveBeenCalled();
+    expect(CollabRoomModel.create).toHaveBeenCalledWith("caller-uuid", "q1", []);
+    expect(res.json).toHaveBeenCalledWith({
+      roomId: "caller-uuid",
+      questionId: "q1",
+    });
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  test("falls back to a generated uuid when no roomId is provided in body", async () => {
+    uuidv4.mockReturnValue("generated-uuid");
+    CollabRoomModel.create.mockResolvedValue({
+      roomId: "generated-uuid",
       questionId: "q1",
     });
 
@@ -54,25 +76,24 @@ describe("createRoom", () => {
     await createRoom(req, res);
 
     expect(uuidv4).toHaveBeenCalledTimes(1);
-    expect(CollabRoomModel.create).toHaveBeenCalledWith("test-uuid", "q1", []);
-    expect(res.json).toHaveBeenCalledWith({
-      roomId: "test-uuid",
-      questionId: "q1",
-    });
-    expect(res.status).not.toHaveBeenCalled();
+    expect(CollabRoomModel.create).toHaveBeenCalledWith(
+      "generated-uuid",
+      "q1",
+      [],
+    );
   });
 
   // J2: allowedUsers forwarding
   test("passes allowedUsers from request body to CollabRoomModel.create", async () => {
-    uuidv4.mockReturnValue("test-uuid");
     CollabRoomModel.create.mockResolvedValue({
-      roomId: "test-uuid",
+      roomId: "caller-uuid",
       questionId: "q1",
     });
 
     const { createRoom } = buildControllers();
     const req = {
       body: {
+        roomId: "caller-uuid",
         questionId: "q1",
         allowedUsers: [{ id: "u1", username: "alice" }],
       },
@@ -81,27 +102,31 @@ describe("createRoom", () => {
 
     await createRoom(req, res);
 
-    expect(CollabRoomModel.create).toHaveBeenCalledWith("test-uuid", "q1", [
+    expect(CollabRoomModel.create).toHaveBeenCalledWith("caller-uuid", "q1", [
       { id: "u1", username: "alice" },
     ]);
   });
 
   test("defaults allowedUsers to [] when not provided in body", async () => {
-    uuidv4.mockReturnValue("test-uuid");
+    uuidv4.mockReturnValue("generated-uuid");
     CollabRoomModel.create.mockResolvedValue({
       allowedUsers: [],
-      roomId: "test-uuid",
+      roomId: "generated-uuid",
       questionId: null,
     });
 
     const { createRoom } = buildControllers();
     await createRoom({ body: {} }, mockRes());
 
-    expect(CollabRoomModel.create).toHaveBeenCalledWith("test-uuid", null, []);
+    expect(CollabRoomModel.create).toHaveBeenCalledWith(
+      "generated-uuid",
+      null,
+      [],
+    );
   });
 
   test("propagates errors from CollabRoomModel.create (no try/catch)", async () => {
-    uuidv4.mockReturnValue("test-uuid");
+    uuidv4.mockReturnValue("generated-uuid");
     CollabRoomModel.create.mockRejectedValue(new Error("DB failure"));
 
     const { createRoom } = buildControllers();
@@ -288,31 +313,36 @@ describe("endRoom", () => {
     expect(CollabRoomModel.endRoom).toHaveBeenCalledWith("r1");
   });
 
-  test("emits room_ended synchronously before awaiting finalizeRoom", async () => {
+  test("call order: emit → endRoom → finalizeRoom", async () => {
     CollabRoomModel.findById.mockResolvedValue({ roomId: "r1" });
     const callOrder = [];
     const mockEmit = jest.fn(() => callOrder.push("emit"));
     const mockIo = { to: jest.fn(() => ({ emit: mockEmit })) };
+    CollabRoomModel.endRoom.mockImplementation(async () => {
+      callOrder.push("endRoom");
+      return {};
+    });
     finalizeRoom.mockImplementation(async () => {
       callOrder.push("finalizeRoom");
     });
-    CollabRoomModel.endRoom.mockResolvedValue({});
 
     const { endRoom } = createRoomController(mockIo);
     await endRoom({ params: { roomId: "r1" } }, mockRes());
 
-    expect(callOrder[0]).toBe("emit");
-    expect(callOrder[1]).toBe("finalizeRoom");
+    expect(callOrder).toEqual(["emit", "endRoom", "finalizeRoom"]);
   });
 
-  test("propagates error if finalizeRoom rejects (no try/catch)", async () => {
+  test("endedAt is persisted even if finalizeRoom rejects", async () => {
     CollabRoomModel.findById.mockResolvedValue({ roomId: "r1" });
+    CollabRoomModel.endRoom.mockResolvedValue({});
     finalizeRoom.mockRejectedValue(new Error("Redis down"));
 
     const { endRoom } = buildControllers();
     await expect(
       endRoom({ params: { roomId: "r1" } }, mockRes()),
     ).rejects.toThrow("Redis down");
+    // endRoom (DB) must have been called before finalizeRoom threw
+    expect(CollabRoomModel.endRoom).toHaveBeenCalledWith("r1");
   });
 
   test("propagates error if CollabRoomModel.endRoom rejects", async () => {

@@ -68,6 +68,11 @@ export default function Chat({
     });
 
     return () => {
+      // Notify the server that this user left voluntarily (e.g. navigated away).
+      // This frees the activeConnections slot so a rejoin on this tab works,
+      // and notifies the partner immediately rather than waiting for TCP timeout.
+      socket.emit("leave_room");
+
       socket.off("load_messages");
       socket.off("receive_message");
       socket.off("room_ended");

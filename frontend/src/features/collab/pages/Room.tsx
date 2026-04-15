@@ -97,7 +97,7 @@ export default function Room() {
 
   // ── Join room & hydrate metadata ────────────────────────────────────────────
   useEffect(() => {
-    if (!id || isLoading) return;
+    if (!id || isLoading || !user) return;
 
     joinRoom(id, user)
       .then(({ data }) => {

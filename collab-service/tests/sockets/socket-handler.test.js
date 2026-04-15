@@ -24,6 +24,7 @@ function buildMocks(socketId = "socket-id-1") {
   const mockSocket = {
     id: socketId,
     join: jest.fn(),
+    leave: jest.fn(),
     emit: jest.fn(),
     on: jest.fn(),
     to: jest.fn(() => ({ emit: mockSocketEmit })),
@@ -60,12 +61,13 @@ describe("socketHandler — connection", () => {
     expect(mockIo.on).toHaveBeenCalledWith("connection", expect.any(Function));
   });
 
-  test("registers join_room, send_message, and disconnect listeners on the socket", () => {
+  test("registers join_room, send_message, leave_room, and disconnect listeners on the socket", () => {
     const { mockIo, mockSocket } = buildMocks();
     connect(mockIo, mockSocket);
     const registeredEvents = mockSocket.on.mock.calls.map(([ev]) => ev);
     expect(registeredEvents).toContain("join_room");
     expect(registeredEvents).toContain("send_message");
+    expect(registeredEvents).toContain("leave_room");
     expect(registeredEvents).toContain("disconnect");
   });
 });
@@ -613,6 +615,97 @@ describe("disconnect — room not auto-ended when users disconnect (D2)", () => 
     getHandler2("disconnect")();
 
     expect(CollabRoomModel.endRoom).not.toHaveBeenCalled();
+  });
+});
+
+/////////////////////////////////////////////////////
+// leave_room — voluntary navigation-away cleanup
+/////////////////////////////////////////////////////
+describe("leave_room event", () => {
+  test("emits user_disconnected to the room with the userId", async () => {
+    CollabRoomModel.getMessages.mockResolvedValue([]);
+    const { mockIo, mockSocket, mockSocketEmit } = buildMocks("sid-lr-1");
+    const getHandler = connect(mockIo, mockSocket);
+    await getHandler("join_room")("room-lr-1", { id: "u1" });
+
+    getHandler("leave_room")();
+
+    expect(mockSocket.to).toHaveBeenCalledWith("room-lr-1");
+    expect(mockSocketEmit).toHaveBeenCalledWith("user_disconnected", {
+      userId: "u1",
+    });
+  });
+
+  test("calls socket.leave(roomId) to exit the Socket.IO room namespace", async () => {
+    CollabRoomModel.getMessages.mockResolvedValue([]);
+    const mockSocket = {
+      id: "sid-lr-2",
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn(),
+      to: jest.fn(() => ({ emit: jest.fn() })),
+    };
+    const { mockIo } = buildMocks();
+    const getHandler = connect(mockIo, mockSocket);
+    await getHandler("join_room")("room-lr-2", { id: "u1" });
+
+    getHandler("leave_room")();
+
+    expect(mockSocket.leave).toHaveBeenCalledWith("room-lr-2");
+  });
+
+  test("removes user from activeConnections so the same user can rejoin", async () => {
+    CollabRoomModel.getMessages.mockResolvedValue([]);
+    const { mockIo, mockSocket: socket1 } = buildMocks("sid-lr-3");
+    const getHandler1 = connect(mockIo, socket1);
+    await getHandler1("join_room")("room-lr-3", { id: "u1" });
+
+    getHandler1("leave_room")();
+
+    const socket2 = {
+      id: "sid-lr-3b",
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn(),
+      to: jest.fn(() => ({ emit: jest.fn() })),
+    };
+    const connectionHandler = mockIo.on.mock.calls[0][1];
+    connectionHandler(socket2);
+    const getHandler2 = (eventName) => {
+      const call = socket2.on.mock.calls.find(([ev]) => ev === eventName);
+      return call ? call[1] : null;
+    };
+    await getHandler2("join_room")("room-lr-3", { id: "u1" });
+
+    expect(socket2.join).toHaveBeenCalledWith("room-lr-3");
+    expect(socket2.emit).not.toHaveBeenCalledWith(
+      "join_error",
+      expect.anything(),
+    );
+  });
+
+  test("subsequent disconnect is a no-op (no double user_disconnected)", async () => {
+    CollabRoomModel.getMessages.mockResolvedValue([]);
+    const { mockIo, mockSocket, mockSocketEmit } = buildMocks("sid-lr-4");
+    const getHandler = connect(mockIo, mockSocket);
+    await getHandler("join_room")("room-lr-4", { id: "u1" });
+
+    getHandler("leave_room")();
+    getHandler("disconnect")();
+
+    // user_disconnected should have been emitted exactly once (from leave_room)
+    expect(mockSocketEmit).toHaveBeenCalledTimes(1);
+  });
+
+  test("does nothing when socket never joined a room", () => {
+    const { mockIo, mockSocket } = buildMocks("sid-lr-5");
+    const getHandler = connect(mockIo, mockSocket);
+
+    // leave_room with no prior join_room — should not throw
+    expect(() => getHandler("leave_room")()).not.toThrow();
+    expect(mockSocket.to).not.toHaveBeenCalled();
   });
 });
 
